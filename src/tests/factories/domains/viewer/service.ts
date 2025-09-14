@@ -1,3 +1,8 @@
+import { errAsync, okAsync } from 'neverthrow';
+
+import { CommonError, conflict, NotFoundError } from 'aspects/error';
+
+import { ImmutableList, ImmutableMap } from 'domains/common/collections';
 import { ImmutableDate } from 'domains/common/date';
 import { URL } from 'domains/common/uri';
 import { LiveStreamIdentifier } from 'domains/streaming';
@@ -8,6 +13,7 @@ import {
   ServiceMeta,
   ServiceOptions,
   ViewerService,
+  ViewerServiceRepository,
 } from 'domains/viewer';
 
 import { Builder, Factory, StringFactory } from 'tests/factories/builder';
@@ -70,6 +76,11 @@ export type ServiceMetaProperties = {
   url: URL | null;
   isLive: boolean | null;
   isReconnecting: boolean | null;
+  startTime: number | null;
+  viewer: number | null;
+  total: number | null;
+  loggedIn: boolean | null;
+  loggedName: string | null;
 };
 
 export const ServiceMetaFactory = Factory<ServiceMeta, ServiceMetaProperties>({
@@ -80,12 +91,24 @@ export const ServiceMetaFactory = Factory<ServiceMeta, ServiceMetaProperties>({
     isLive: overrides.isLive ?? (seed % 3 === 0 ? true : seed % 3 === 1 ? false : null),
     isReconnecting:
       overrides.isReconnecting ?? (seed % 3 === 0 ? true : seed % 3 === 1 ? false : null),
+    startTime: overrides.startTime ?? (seed % 2 === 0 ? seed * 1000 : null),
+    viewer: overrides.viewer ?? (seed % 2 === 0 ? seed : null),
+    total: overrides.total ?? (seed % 2 === 0 ? seed * 10 : null),
+    loggedIn: overrides.loggedIn ?? (seed % 2 === 0 ? true : null),
+    loggedName:
+      overrides.loggedName ??
+      (seed % 2 === 0 ? Builder(StringFactory(1, 32)).buildWith(seed) : null),
   }),
   retrieve: properties => ({
     title: properties.title,
     url: properties.url,
     isLive: properties.isLive,
     isReconnecting: properties.isReconnecting,
+    startTime: properties.startTime,
+    viewer: properties.viewer,
+    total: properties.total,
+    loggedIn: properties.loggedIn,
+    loggedName: properties.loggedName,
   }),
 });
 
@@ -145,4 +168,79 @@ export const ServiceCreatedFactory = Factory<ServiceCreated, ServiceCreatedPrope
     service: instance.service,
     stream: instance.stream,
   }),
+});
+
+export type ViewerServiceRepositoryProperties = {
+  instances: ImmutableList<ViewerService>;
+  links?: ImmutableMap<LiveStreamIdentifier, ServiceIdentifier>;
+  onPersist?: (instance: ViewerService) => void;
+  onTerminate?: (instance: ViewerService) => void;
+};
+
+export const ViewerServiceRepositoryFactory = Factory<
+  ViewerServiceRepository,
+  ViewerServiceRepositoryProperties
+>({
+  instantiate: properties => {
+    let services: ImmutableMap<ServiceIdentifier, ViewerService> = ImmutableMap.fromArray(
+      properties.instances
+        .map((instance): [ServiceIdentifier, ViewerService] => [instance.identifier, instance])
+        .toArray()
+    );
+
+    let links: ImmutableMap<LiveStreamIdentifier, ServiceIdentifier> =
+      properties.links ?? ImmutableMap.empty();
+
+    return {
+      find: (identifier: ServiceIdentifier) =>
+        services.get(identifier).ifPresentOrElse(
+          instance => okAsync<ViewerService, NotFoundError>(instance),
+          () =>
+            errAsync<ViewerService, NotFoundError>({
+              type: 'not-found',
+              context: JSON.stringify(identifier),
+            })
+        ),
+      findByStream: (stream: LiveStreamIdentifier) =>
+        links.get(stream).ifPresentOrElse(
+          sid =>
+            services.get(sid).ifPresentOrElse(
+              instance => okAsync<ViewerService, NotFoundError>(instance),
+              () =>
+                errAsync<ViewerService, NotFoundError>({ type: 'not-found', context: 'service' })
+            ),
+          () => errAsync<ViewerService, NotFoundError>({ type: 'not-found', context: 'link' })
+        ),
+      persist: (instance: ViewerService) =>
+        services.get(instance.identifier).ifPresentOrElse(
+          _ => errAsync<void, CommonError>(conflict(JSON.stringify(instance))),
+          () => {
+            services = services.add(instance.identifier, instance);
+            properties.onPersist?.(instance);
+            return okAsync<void, CommonError>();
+          }
+        ),
+      terminate: (identifier: ServiceIdentifier) =>
+        services.get(identifier).ifPresentOrElse(
+          instance => {
+            services = services.remove(identifier);
+            links = links.filter((_, sid) => !sid.equals(identifier));
+            properties.onTerminate?.(instance);
+            return okAsync<void, NotFoundError>();
+          },
+          () =>
+            errAsync<void, NotFoundError>({
+              type: 'not-found',
+              context: JSON.stringify(identifier),
+            })
+        ),
+    };
+  },
+  prepare: (overrides, seed) => ({
+    instances: Builder(ViewerServiceFactory).buildListWith(5, seed),
+    ...overrides,
+  }),
+  retrieve: _ => {
+    throw new Error('Repository cannot be retrieved.');
+  },
 });

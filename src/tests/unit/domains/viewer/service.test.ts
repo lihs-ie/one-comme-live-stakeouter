@@ -27,7 +27,7 @@ describe('Package service', () => {
       ServiceIdentifier,
       { value: uuidV4FromSeed(0) },
       [{ value: uuidV4FromSeed(1) }, { value: uuidV4FromSeed(2) }],
-      [{ value: 'invalid' }, { value: 123 }]
+      [{ value: '' }, { value: 'a'.repeat(65) }, { value: 123 }]
     );
   });
 
@@ -70,6 +70,11 @@ describe('Package service', () => {
         url: null,
         isLive: null,
         isReconnecting: null,
+        startTime: null,
+        viewer: null,
+        total: null,
+        loggedIn: null,
+        loggedName: null,
       },
       [
         { title: null },
@@ -78,6 +83,12 @@ describe('Package service', () => {
         { isLive: false },
         { isReconnecting: true },
         { isReconnecting: false },
+        { startTime: 0 },
+        { viewer: 100 },
+        { total: 42 },
+        { loggedIn: true },
+        { loggedIn: false },
+        { loggedName: 'Alice' },
       ],
       [
         { title: '' },
@@ -85,6 +96,12 @@ describe('Package service', () => {
         { url: 'invalid' },
         { isLive: 'invalid' },
         { isReconnecting: 'invalid' },
+        { startTime: -1 },
+        { viewer: -1 },
+        { total: -1 },
+        { loggedIn: 'invalid' },
+        { loggedName: '' },
+        { loggedName: Builder(StringFactory(256, 256)).build() },
       ]
     );
   });

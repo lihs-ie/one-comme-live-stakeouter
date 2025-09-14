@@ -1,16 +1,18 @@
 import { ResultAsync } from 'neverthrow';
 import { z } from 'zod';
 
-import { NotFoundError } from 'aspects/error';
+import { CommonError, NotFoundError } from 'aspects/error';
 import { functionSchemaReturning } from 'aspects/type';
 
 import { createEvent, eventSchema } from '../common/event';
-import { uuidV4BasedIdentifierSchema } from '../common/identifier';
+import { stringBasedIdentifierSchema } from '../common/identifier';
 import { URL, urlSchema } from '../common/uri';
 import { ValueObject, valueObjectSchema } from '../common/value-object';
 import { LiveStreamIdentifier, liveStreamIdentifierSchema } from '../streaming/common';
 
-export const serviceIdentifierSchema = uuidV4BasedIdentifierSchema.brand('ServiceIdentifier');
+export const serviceIdentifierSchema = stringBasedIdentifierSchema(1, 64).brand(
+  'ServiceIdentifier'
+);
 
 export type ServiceIdentifier = ValueObject<z.infer<typeof serviceIdentifierSchema>>;
 
@@ -44,6 +46,11 @@ export const serviceMetaSchema = valueObjectSchema
     url: urlSchema.nullable(),
     isLive: z.boolean().nullable(),
     isReconnecting: z.boolean().nullable(),
+    startTime: z.number().int().min(0).nullable(),
+    viewer: z.number().int().min(0).nullable(),
+    total: z.number().int().min(0).nullable(),
+    loggedIn: z.boolean().nullable(),
+    loggedName: z.string().min(1).max(255).nullable(),
   })
   .brand('ServiceMeta');
 
@@ -126,6 +133,6 @@ export const ServiceCreated = createEvent<ServiceCreated>(
 export interface ViewerServiceRepository {
   find: (identifier: ServiceIdentifier) => ResultAsync<ViewerService, NotFoundError>;
   findByStream: (stream: LiveStreamIdentifier) => ResultAsync<ViewerService, NotFoundError>;
-  persist: (service: ViewerService) => ResultAsync<void, Error>;
-  terminate: () => ResultAsync<void, Error>;
+  persist: (service: ViewerService) => ResultAsync<void, CommonError>;
+  terminate: (identifier: ServiceIdentifier) => ResultAsync<void, NotFoundError>;
 }
