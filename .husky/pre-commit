@@ -1,0 +1,30 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# コミット対象ファイルのみ取得（設定系jsファイルは除外）
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM \
+	| grep -E '\.(ts|tsx|js|jsx)$' \
+	| grep -vE '(^|/)\.eslintrc\.js$|(^|/)webpack(\.[^/]+)?\.config\.js$' \
+	| tr '\n' ' ')
+
+# TypeScript型チェック（対象ファイルのみ）
+if [ -n "$STAGED_FILES" ]; then
+	echo "🔍 Running TypeScript type check on staged files..."
+	pnpm exec tsc --noEmit $STAGED_FILES
+else
+	echo "No staged TypeScript/JavaScript files to type-check."
+fi
+
+# lint-staged実行（lint-staged自体が対象ファイルのみ処理）
+echo "🎨 Running lint-staged..."
+pnpm exec lint-staged
+
+# テスト実行（対象ファイルに関連するもののみ）
+if [ -n "$STAGED_FILES" ]; then
+	echo "🧪 Running related tests for staged files..."
+	pnpm exec vitest related --run $STAGED_FILES
+else
+	echo "No staged files to test."
+fi
+
+echo "✅ Pre-commit checks completed!"
