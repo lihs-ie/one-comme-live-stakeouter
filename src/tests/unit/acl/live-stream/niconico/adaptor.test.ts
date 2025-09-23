@@ -4,6 +4,7 @@ import {
   ProgramReader,
   LiveStreamReader,
 } from 'acl/live-stream/niconico';
+import { HttpClient } from 'aspects/http';
 
 import { PlatformType } from 'domains/common/platform';
 import { Status } from 'domains/streaming';
@@ -38,8 +39,9 @@ describe('Package adaptor', () => {
           const baseURL = 'https://example.com/';
           const userAgent = 'test-agent';
 
-          const identifier = Builder(LiveStreamIdentifierFactory).build();
-          const channel = Builder(ChannelIdentifierFactory).build();
+          const platform = PlatformType.NICONICO;
+          const identifier = Builder(LiveStreamIdentifierFactory).build({ platform });
+          const channel = Builder(ChannelIdentifierFactory).build({ platform });
 
           const expected = Builder(LiveStreamFactory).build({
             identifier,
@@ -47,7 +49,6 @@ describe('Package adaptor', () => {
               value: Builder(URLFactory).build({
                 value: `${baseURL}${identifier.value}`,
               }),
-              platform: PlatformType.NICONICO,
               channel,
             }),
             status: Status.ENDED,
@@ -59,7 +60,7 @@ describe('Package adaptor', () => {
           });
 
           const adaptor = NicoNicoAdaptor(
-            endpoint,
+            HttpClient({ baseURL: endpoint }),
             userAgent,
             ProgramReader,
             LiveStreamReader,
@@ -77,8 +78,10 @@ describe('Package adaptor', () => {
         it.each(Object.values(Type).filter(type => type !== Type.OK))(
           'should return ErrorResult when program upstream returns %s response',
           async type => {
-            const channel = Builder(ChannelIdentifierFactory).build();
-            const identifier = Builder(LiveStreamIdentifierFactory).build();
+            const platform = PlatformType.NICONICO;
+
+            const channel = Builder(ChannelIdentifierFactory).build({ platform });
+            const identifier = Builder(LiveStreamIdentifierFactory).build({ platform });
             const baseURL = 'https://example.com/';
             const userAgent = 'test-agent';
 
@@ -88,7 +91,6 @@ describe('Package adaptor', () => {
                 value: Builder(URLFactory).build({
                   value: `${baseURL}${identifier.value}`,
                 }),
-                platform: PlatformType.NICONICO,
                 channel,
               }),
               status: Status.ENDED,
@@ -99,7 +101,7 @@ describe('Package adaptor', () => {
             });
 
             const adaptor = NicoNicoAdaptor(
-              endpoint,
+              HttpClient({ baseURL: endpoint }),
               userAgent,
               ProgramReader,
               LiveStreamReader,
@@ -115,8 +117,10 @@ describe('Package adaptor', () => {
         it.each(Object.values(Type).filter(type => type !== Type.OK))(
           'should return ErrorResult when live-stream upstream returns %s response',
           async type => {
-            const channel = Builder(ChannelIdentifierFactory).build();
-            const identifier = Builder(LiveStreamIdentifierFactory).build();
+            const platform = PlatformType.NICONICO;
+
+            const channel = Builder(ChannelIdentifierFactory).build({ platform });
+            const identifier = Builder(LiveStreamIdentifierFactory).build({ platform });
             const baseURL = 'https://example.com/';
             const userAgent = 'test-agent';
 
@@ -126,7 +130,6 @@ describe('Package adaptor', () => {
                 value: Builder(URLFactory).build({
                   value: `${baseURL}${identifier.value}`,
                 }),
-                platform: PlatformType.NICONICO,
                 channel,
               }),
               status: Status.ENDED,
@@ -138,7 +141,7 @@ describe('Package adaptor', () => {
             });
 
             const adaptor = NicoNicoAdaptor(
-              endpoint,
+              HttpClient({ baseURL: endpoint }),
               userAgent,
               ProgramReader,
               LiveStreamReader,

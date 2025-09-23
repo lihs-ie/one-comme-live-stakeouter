@@ -9,6 +9,7 @@ import { Status } from 'domains/streaming';
 
 import { Builder } from 'tests/factories';
 import { URLFactory } from 'tests/factories/domains/common/uri';
+import { ChannelIdentifierFactory } from 'tests/factories/domains/monitoring';
 import {
   LiveStreamFactory,
   LiveStreamIdentifierFactory,
@@ -22,13 +23,15 @@ describe('Package translator', () => {
       describe('successfully', () => {
         it('should translate returns SuccessResult with valid media', () => {
           const baseURL = 'https://example.com/';
-          const identifier = Builder(LiveStreamIdentifierFactory).build();
+
+          const platform = PlatformType.NICONICO;
+          const identifier = Builder(LiveStreamIdentifierFactory).build({ platform });
 
           const expected = Builder(LiveStreamFactory).build({
             identifier,
             url: Builder(LiveStreamURLFactory).build({
               value: Builder(URLFactory).build({ value: `${baseURL}${identifier.value}` }),
-              platform: PlatformType.NICONICO,
+              channel: Builder(ChannelIdentifierFactory).build({ platform }),
             }),
             status: Status.ENDED,
           });
@@ -47,10 +50,35 @@ describe('Package translator', () => {
 
       describe('unsuccessfully', () => {
         it('should translate returns ErrorResult with invalid media', () => {
-          const actual = Translator('http://example.com/').translate([
-            {} as unknown as LiveStreamCustomMedia,
-            Builder(LiveStreamIdentifierFactory).build(),
-          ]);
+          const baseURL = 'https://example.com/';
+
+          const platform = PlatformType.NICONICO;
+          const identifier = Builder(LiveStreamIdentifierFactory).build({ platform });
+
+          // まず正しいメディアを構築
+          const validMedia = LiveStreamReader.read(
+            new LiveStreamMedia(
+              Builder(LiveStreamFactory).build({
+                identifier,
+                url: Builder(LiveStreamURLFactory).build({
+                  value: Builder(URLFactory).build({ value: `${baseURL}${identifier.value}` }),
+                  channel: Builder(ChannelIdentifierFactory).build({ platform }),
+                }),
+                status: Status.ENDED,
+              })
+            ).createSuccessfulContent()
+          )._unsafeUnwrap();
+
+          // 不正なメディア: 終了時刻 < 開始時刻 として検証を失敗させる
+          const invalidMedia: LiveStreamCustomMedia = {
+            ...validMedia,
+            data: {
+              ...validMedia.data,
+              endAt: new Date(validMedia.data.beginAt.getTime() - 1000),
+            },
+          };
+
+          const actual = Translator('http://example.com/').translate([invalidMedia, identifier]);
 
           expect(actual.isErr()).toBeTruthy();
 

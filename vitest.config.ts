@@ -91,6 +91,13 @@ export default defineConfig({
 
     // セットアップファイル
     setupFiles: ['./vitest.setup.ts'],
+
+    // Electron関連パッケージのモック設定
+    server: {
+      deps: {
+        external: ['electron', 'electron-store'],
+      },
+    },
   },
 
   // パスエイリアス設定

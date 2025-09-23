@@ -29,7 +29,7 @@ export class ProgramResource extends Resource<CommonType, Overrides, object> {
       return false;
     }
 
-    if (!uri.startsWith(`tool/v1/broadcasters/user/${this.overrides.url.channel.value}/program`)) {
+    if (!uri.startsWith(`/tool/v1/broadcasters/user/${this.overrides.url.channel.value}/program`)) {
       return false;
     }
 

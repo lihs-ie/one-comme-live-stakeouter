@@ -151,9 +151,9 @@ const SortedImmutableMapImpl = <K, V>(
 
   const isNotEmpty = (): boolean => !isEmpty();
 
-  const foreach = (callback: (key: K, value: V) => void): void => {
+  const foreach = (callback: (key: K, value: V, index: number) => void): void => {
     const items = toArray();
-    items.forEach(([key, value]): void => callback(key, value));
+    items.forEach(([key, value], index): void => callback(key, value, index));
   };
 
   const exists = (predicate: (key: K, value: V) => boolean): boolean => {

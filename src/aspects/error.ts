@@ -4,6 +4,8 @@ export type CommonError<T = string> = {
   error?: Error;
 };
 
+// HTTP related errors
+
 export type RouteError = CommonError<
   | 'unauthorized'
   | 'not-found'
@@ -63,6 +65,8 @@ export const toJSONError = (content: string): ToJSONError => ({
   content,
 });
 
+// Domain Error
+
 export type ValidationError = CommonError<'validation-error'>;
 
 export const validationError = (context: string): ValidationError => ({
@@ -70,11 +74,43 @@ export const validationError = (context: string): ValidationError => ({
   context,
 });
 
-export type NotFoundError = CommonError<'not-found'>;
+export type AggregateNotFoundError<T> = CommonError<'aggregate-not-found'> & {
+  identifier: T;
+};
 
-export type InvalidArgumentError = CommonError<'invalid-argument'>;
-
-export const invalidArgument = (context: string): InvalidArgumentError => ({
-  type: 'invalid-argument',
+export const aggregateNotFound = <T>(
+  context: string,
+  identifier: T
+): AggregateNotFoundError<T> => ({
+  type: 'aggregate-not-found',
   context,
+  identifier,
+});
+
+export type UnexpectedValueError = CommonError<'unexpected-value'>;
+
+export const unexpectedValue = (context: string): UnexpectedValueError => ({
+  type: 'unexpected-value',
+  context,
+});
+
+export type DetectionFailureError = CommonError<'detection-failure'> & {
+  retryable: boolean;
+  cooldownUntil: number | null;
+  hint?: string;
+};
+
+export const detectionFailure = (properties: {
+  retryable: boolean;
+  cooldownUntil: number | null;
+  context?: string;
+  hint?: string;
+  error?: Error;
+}): DetectionFailureError => ({
+  type: 'detection-failure',
+  retryable: properties.retryable,
+  cooldownUntil: properties.cooldownUntil,
+  context: properties.context,
+  hint: properties.hint,
+  error: properties.error,
 });

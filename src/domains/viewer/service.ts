@@ -1,18 +1,23 @@
 import { ResultAsync } from 'neverthrow';
 import { z } from 'zod';
 
-import { CommonError, NotFoundError } from 'aspects/error';
+import { CommonError } from 'aspects/error';
 import { functionSchemaReturning } from 'aspects/type';
 
+import { ImmutableList } from 'domains/common/collections';
+
 import { createEvent, eventSchema } from '../common/event';
-import { stringBasedIdentifierSchema } from '../common/identifier';
+import { uuidV4BasedIdentifierSchema } from '../common/identifier';
+import { platformTypeSchema } from '../common/platform';
 import { URL, urlSchema } from '../common/uri';
 import { ValueObject, valueObjectSchema } from '../common/value-object';
-import { LiveStreamIdentifier, liveStreamIdentifierSchema } from '../streaming/common';
+import { liveStreamIdentifierSchema } from '../streaming/common';
 
-export const serviceIdentifierSchema = stringBasedIdentifierSchema(1, 64).brand(
-  'ServiceIdentifier'
-);
+export const serviceIdentifierSchema = uuidV4BasedIdentifierSchema
+  .extend({
+    platform: platformTypeSchema,
+  })
+  .brand('ServiceIdentifier');
 
 export type ServiceIdentifier = ValueObject<z.infer<typeof serviceIdentifierSchema>>;
 
@@ -131,8 +136,8 @@ export const ServiceCreated = createEvent<ServiceCreated>(
 );
 
 export interface ViewerServiceRepository {
-  find: (identifier: ServiceIdentifier) => ResultAsync<ViewerService, NotFoundError>;
-  findByStream: (stream: LiveStreamIdentifier) => ResultAsync<ViewerService, NotFoundError>;
+  find: (identifier: ServiceIdentifier) => ResultAsync<ViewerService, CommonError>;
+  search: () => ResultAsync<ImmutableList<ViewerService>, CommonError>;
   persist: (service: ViewerService) => ResultAsync<void, CommonError>;
-  terminate: (identifier: ServiceIdentifier) => ResultAsync<void, NotFoundError>;
+  terminate: (identifier: ServiceIdentifier) => ResultAsync<void, CommonError>;
 }

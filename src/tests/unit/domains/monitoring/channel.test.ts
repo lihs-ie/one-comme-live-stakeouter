@@ -45,7 +45,10 @@ describe('Package channel', () => {
   describe('ChannelIdentifier', () => {
     ValueObjectTest(
       ChannelIdentifier,
-      { value: Builder(StringFactory(1, 64)).buildWith(0) },
+      {
+        value: Builder(StringFactory(1, 64)).buildWith(0),
+        platform: Builder(PlatformTypeFactory).buildWith(0),
+      },
       [
         {
           value: Builder(StringFactory(1, 1)).buildWith(1),
@@ -63,23 +66,17 @@ describe('Package channel', () => {
           'should return Channel with lastCheckedAt: %s',
           lastCheckedAt => {
             const identifier = Builder(ChannelIdentifierFactory).build();
-            const platform = Builder(PlatformTypeFactory).build();
-            const isMonitoring = Math.random() > 0.5;
             const setting = Builder(MonitoringSettingFactory).build();
             const timestamp = Builder(TimeStampFactory).build();
 
             const channel = Channel({
               identifier,
-              platform,
-              isMonitoring,
               setting,
               lastCheckedAt,
               timestamp,
             });
 
             expect(identifier).toEqualValueObject(channel.identifier);
-            expect(platform).toBe(channel.platform);
-            expect(isMonitoring).toBe(channel.isMonitoring);
             expect(setting).toEqualValueObject(channel.setting);
             expect(lastCheckedAt).toBeNullOr(
               channel.lastCheckedAt,
@@ -104,11 +101,11 @@ describe('Package channel', () => {
 
         const actual1 = channel.toggleMonitoring();
 
-        expect(actual1.isMonitoring).toBe(!channel.isMonitoring);
+        expect(actual1.setting.isMonitoring).toBe(!channel.setting.isMonitoring);
 
         const actual2 = actual1.toggleMonitoring();
 
-        expect(actual2.isMonitoring).toBe(channel.isMonitoring);
+        expect(actual2.setting.isMonitoring).toBe(channel.setting.isMonitoring);
       });
     });
   });

@@ -90,6 +90,7 @@ export default defineConfig([
       '@typescript-eslint/prefer-optional-chain': 'error',
       '@typescript-eslint/strict-boolean-expressions': 'error',
       '@typescript-eslint/no-namespace': 'off',
+      '@typescript-eslint/only-throw-error': 'off',
 
       // 未使用 import の禁止（固定）
       'unused-imports/no-unused-imports': 'error',

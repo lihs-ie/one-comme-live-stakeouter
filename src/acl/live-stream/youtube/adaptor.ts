@@ -1,6 +1,7 @@
-import { ResultAsync } from 'neverthrow';
+import { okAsync, ResultAsync } from 'neverthrow';
 
-import { CommonError, NotFoundError, other, ValidationError } from 'aspects/error';
+import { CommonError, RouteError, ValidationError } from 'aspects/error';
+import { HttpClient, mapHttpClientError } from 'aspects/http';
 
 import { PlatformType } from 'domains/common/platform';
 import { ChannelIdentifier } from 'domains/monitoring';
@@ -8,43 +9,28 @@ import { LiveStream } from 'domains/streaming/common';
 
 import { BaseReader, BaseTranslator, LiveStreamAdaptor } from '../common';
 import { Media } from './media-types';
-import { handleErrorResponse } from '../common/response';
 
 export const YoutubeAdaptor = (
-  endpoint: string,
+  http: HttpClient,
   apiKey: string,
   reader: BaseReader<Media>,
-  translator: BaseTranslator<Media, LiveStream, ValidationError | NotFoundError>
+  translator: BaseTranslator<Media, LiveStream, ValidationError | RouteError>
 ): LiveStreamAdaptor =>
   LiveStreamAdaptor(
     PlatformType.YOUTUBE,
     (channel: ChannelIdentifier): ResultAsync<LiveStream, CommonError> => {
-      const createRequest = () => {
-        const query = new URLSearchParams();
-
-        query.set('part', 'snippet');
-
-        query.set('channelId', channel.value);
-
-        query.set('eventType', 'live');
-
-        query.set('type', 'video');
-
-        query.set('key', apiKey);
-
-        return `${endpoint}/v3/search?${query.toString()}`;
+      const query = {
+        part: 'snippet',
+        channelId: channel.value,
+        eventType: 'live',
+        type: 'video',
+        key: apiKey,
       };
 
-      return ResultAsync.fromPromise(fetch(createRequest()), error =>
-        other((error as Error).message)
-      )
-        .andThen(response => {
-          if (!response.ok) {
-            return handleErrorResponse<string>(response);
-          }
-
-          return ResultAsync.fromSafePromise(response.text());
-        })
+      return http
+        .get('v3/search', { query })
+        .mapErr(mapHttpClientError)
+        .andThen(response => okAsync(response.bodyText))
         .andThen(payload => reader.read(payload))
         .andThen(media => translator.translate(media));
     }

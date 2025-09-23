@@ -1,6 +1,5 @@
 import { z } from 'zod';
 
-import { NullableOptional } from '../optional';
 import { Optional } from '../optional/common';
 
 import type { createConverters } from '../converters';
@@ -130,9 +129,9 @@ const ImmutableListImpl = <T>(values: T[] = []): ImmutableList<T> => {
     return -1;
   };
 
-  const first = (): Optional<T> => NullableOptional(items[0]);
+  const first = (): Optional<T> => Optional.nullable(items[0]);
 
-  const last = (): Optional<T> => NullableOptional(items[items.length - 1]);
+  const last = (): Optional<T> => Optional.nullable(items[items.length - 1]);
 
   const map = <R>(mapper: (value: T, index: number) => R): ImmutableList<R> => {
     const mapped = items.map(mapper);

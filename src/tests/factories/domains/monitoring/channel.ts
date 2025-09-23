@@ -1,6 +1,6 @@
 import { errAsync, okAsync } from 'neverthrow';
 
-import { NotFoundError } from 'aspects/error';
+import { CommonError } from 'aspects/error';
 
 import { ImmutableList, ImmutableMap } from 'domains/common/collections';
 import { ImmutableDate, Timestamp } from 'domains/common/date';
@@ -22,15 +22,18 @@ import { PlatformTypeFactory } from '../common/platform';
 
 export type ChannelIdentifierProperties = {
   value: string;
+  platform: PlatformType;
 };
 
 export const ChannelIdentifierFactory = Factory<ChannelIdentifier, ChannelIdentifierProperties>({
   instantiate: properties => ChannelIdentifier(properties),
   prepare: (overrides, seed) => ({
     value: overrides.value ?? Builder(StringFactory(1, 64)).buildWith(seed),
+    platform: overrides.platform ?? Builder(PlatformTypeFactory).buildWith(seed),
   }),
   retrieve: properties => ({
     value: properties.value,
+    platform: properties.platform,
   }),
 });
 
@@ -42,7 +45,7 @@ export type MonitoringSettingProperties = {
 export const MonitoringSettingFactory = Factory<MonitoringSetting, MonitoringSettingProperties>({
   instantiate: properties => MonitoringSetting(properties),
   prepare: (overrides, seed) => ({
-    checkInterval: overrides.checkInterval ?? (seed % 3600) + 10,
+    checkInterval: overrides.checkInterval ?? (seed % 3590) + 10,
     isMonitoring: overrides.isMonitoring ?? seed % 2 === 0,
   }),
   retrieve: properties => ({
@@ -53,8 +56,6 @@ export const MonitoringSettingFactory = Factory<MonitoringSetting, MonitoringSet
 
 export type ChannelProperties = {
   identifier: ChannelIdentifier;
-  platform: PlatformType;
-  isMonitoring: boolean;
   setting: MonitoringSetting;
   lastCheckedAt: ImmutableDate | null;
   timestamp: Timestamp;
@@ -64,16 +65,12 @@ export const ChannelFactory = Factory<Channel, ChannelProperties>({
   instantiate: properties => Channel(properties),
   prepare: (overrides, seed) => ({
     identifier: overrides.identifier ?? Builder(ChannelIdentifierFactory).buildWith(seed),
-    platform: overrides.platform ?? Builder(PlatformTypeFactory).buildWith(seed),
-    isMonitoring: overrides.isMonitoring ?? seed % 2 === 0,
     setting: overrides.setting ?? Builder(MonitoringSettingFactory).buildWith(seed),
     lastCheckedAt: overrides.lastCheckedAt ?? null,
     timestamp: overrides.timestamp ?? Builder(TimeStampFactory).buildWith(seed),
   }),
   retrieve: instance => ({
     identifier: instance.identifier,
-    platform: instance.platform,
-    isMonitoring: instance.isMonitoring,
     setting: instance.setting,
     lastCheckedAt: instance.lastCheckedAt,
     timestamp: instance.timestamp,
@@ -98,17 +95,25 @@ export const ChannelRepositoryFactory = Factory<ChannelRepository, ChannelReposi
       find: (identifier: ChannelIdentifier) =>
         instances.get(identifier).ifPresentOrElse(
           instance => okAsync(instance),
-          () => errAsync({ type: 'not-found', context: identifier.value })
+          () =>
+            errAsync<Channel, CommonError>({
+              type: 'not-found',
+              context: identifier.value,
+            })
         ),
       findByChannel: (channel: ChannelIdentifier) =>
         instances
           .find((_, instance) => channel.equals(instance.identifier))
           .ifPresentOrElse(
             instance => okAsync(instance),
-            () => errAsync({ type: 'not-found', context: channel.value })
+            () =>
+              errAsync<Channel, CommonError>({
+                type: 'not-found',
+                context: channel.value,
+              })
           ),
-      monitoringChannels: () =>
-        okAsync(instances.filter((_, instance) => instance.isMonitoring).toList()),
+      monitoring: () =>
+        okAsync(instances.filter((_, instance) => instance.setting.isMonitoring).toList()),
       persist: (channel: Channel) =>
         instances.get(channel.identifier).ifPresentOrElse(
           _ => errAsync({ type: 'conflict', context: channel.identifier.value }),
@@ -127,9 +132,13 @@ export const ChannelRepositoryFactory = Factory<ChannelRepository, ChannelReposi
 
             properties.onTerminate?.(identifier);
 
-            return okAsync();
+            return okAsync<void, CommonError>();
           },
-          () => errAsync({ type: 'not-found', context: identifier.value } satisfies NotFoundError)
+          () =>
+            errAsync<void, CommonError>({
+              type: 'not-found',
+              context: identifier.value,
+            })
         ),
     };
   },
@@ -206,3 +215,30 @@ export const MonitoringStartedFactory = Factory<MonitoringStarted, MonitoringSta
     channel: instance.channel,
   }),
 });
+
+expect.extend({
+  toBeSameChannel(actual: Channel, expected: Channel) {
+    expect(actual.identifier).toEqualValueObject(expected.identifier);
+    expect(actual.setting).toEqualValueObject(expected.setting);
+    expect(actual.timestamp).toEqualValueObject(expected.timestamp);
+    expect(actual.lastCheckedAt).toBeNullOr(
+      expected.lastCheckedAt,
+      (expectedLastCheckedAt, actualLastCheckedAt) => {
+        expect(actualLastCheckedAt).toEqualValueObject(expectedLastCheckedAt);
+      }
+    );
+
+    return {
+      message: () => 'OK',
+      pass: true,
+    };
+  },
+});
+
+declare global {
+  namespace jest {
+    interface Matchers<R> {
+      toBeSameChannel(expected: Channel): R;
+    }
+  }
+}

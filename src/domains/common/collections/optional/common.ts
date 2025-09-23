@@ -43,9 +43,9 @@ export interface Optional<T> {
   map: <R>(mapper: (value: T) => R) => Optional<R>;
 }
 
-export const empty = <T>(): Optional<T> => Optional<T>(undefined);
+const empty = <T>(): Optional<T> => Optional<T>(undefined);
 
-export const nullable = <T>(value?: T | null): Optional<T> => {
+const nullable = <T>(value?: T | null): Optional<T> => {
   if (value === null || value === undefined) {
     return empty<T>();
   }
@@ -53,7 +53,7 @@ export const nullable = <T>(value?: T | null): Optional<T> => {
   return Optional<T>(value);
 };
 
-export const Optional = <T>(value?: T): Optional<T> => {
+export const OptionalImplementation = <T>(value?: T): Optional<T> => {
   const inner: Some<T> | None = value !== undefined ? Some(value) : None();
 
   const isPresent = (): boolean => inner.isPresent();
@@ -107,7 +107,7 @@ export const Optional = <T>(value?: T): Optional<T> => {
 
   const map = <R>(mapper: (value: T) => R): Optional<R> => {
     if (isPresent()) {
-      return Optional(mapper(inner.get()));
+      return OptionalImplementation(mapper(inner.get()));
     }
 
     return empty<R>();
@@ -124,3 +124,14 @@ export const Optional = <T>(value?: T): Optional<T> => {
     map,
   };
 };
+
+export interface OptionalConstructor {
+  <T>(value?: T | null): Optional<T>;
+  empty<T>(): Optional<T>;
+  nullable<T>(value?: T | null): Optional<T>;
+}
+
+export const Optional: OptionalConstructor = Object.assign(OptionalImplementation, {
+  empty: <T>(): Optional<T> => OptionalImplementation<T>(undefined),
+  nullable,
+} as OptionalConstructor);

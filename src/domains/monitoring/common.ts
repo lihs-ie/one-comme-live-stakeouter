@@ -1,7 +1,7 @@
 import { ResultAsync } from 'neverthrow';
 import { z } from 'zod';
 
-import { CommonError, NotFoundError } from 'aspects/error';
+import { CommonError } from 'aspects/error';
 import { Logger } from 'aspects/log';
 import { functionSchemaReturning } from 'aspects/type';
 
@@ -26,6 +26,7 @@ export const MonitoringSetting = ValueObject<MonitoringSetting>(monitoringSettin
 export const channelIdentifierSchema = valueObjectSchema
   .extend({
     value: z.string().min(1).max(64),
+    platform: platformTypeSchema,
   })
   .brand('ChannelIdentifier');
 
@@ -39,8 +40,6 @@ export interface ChannelProperties extends z.infer<typeof channelBaseSchema> {
 
 const channelBaseSchema = z.object({
   identifier: channelIdentifierSchema,
-  platform: platformTypeSchema,
-  isMonitoring: z.boolean(),
   setting: monitoringSettingSchema,
   lastCheckedAt: immutableDateSchema.nullable(),
   timestamp: timestampSchema,
@@ -56,8 +55,6 @@ export type Channel = z.infer<typeof channelSchema>;
 
 export const Channel = (properties: {
   identifier: ChannelIdentifier;
-  platform: PlatformType;
-  isMonitoring: boolean;
   setting: MonitoringSetting;
   lastCheckedAt: ImmutableDate | null;
   timestamp: Timestamp;
@@ -65,7 +62,10 @@ export const Channel = (properties: {
   const toggle = (isMonitoring: boolean): Channel =>
     channelSchema.parse({
       ...properties,
-      isMonitoring,
+      setting: MonitoringSetting({
+        checkInterval: properties.setting.checkInterval,
+        isMonitoring,
+      }),
       timestamp: timestampSchema.parse({
         ...properties.timestamp,
         updatedAt: ImmutableDate.now(),
@@ -75,16 +75,15 @@ export const Channel = (properties: {
 
   return channelSchema.parse({
     ...properties,
-    toggleMonitoring: () => toggle(!properties.isMonitoring),
+    toggleMonitoring: () => toggle(!properties.setting.isMonitoring),
   });
 };
 
 export interface ChannelRepository {
-  find: (identifier: ChannelIdentifier) => ResultAsync<Channel, NotFoundError>;
-  findByChannel: (channel: ChannelIdentifier) => ResultAsync<Channel, NotFoundError>;
-  monitoringChannels: () => ResultAsync<ImmutableList<Channel>, CommonError>;
+  find: (identifier: ChannelIdentifier) => ResultAsync<Channel, CommonError>;
+  monitoring: () => ResultAsync<ImmutableList<Channel>, CommonError>;
   persist: (channel: Channel) => ResultAsync<void, CommonError>;
-  terminate: (identifier: ChannelIdentifier) => ResultAsync<void, NotFoundError>;
+  terminate: (identifier: ChannelIdentifier) => ResultAsync<void, CommonError>;
 }
 
 // 監視ドメインサービスルール

@@ -8,7 +8,7 @@ import {
 } from '../hamt';
 import { ImmutableList } from '../list';
 import { ImmutableMap } from '../map';
-import { NullableOptional, Optional } from '../optional';
+import { Optional } from '../optional';
 import { IndexedSequence } from '../sequence';
 
 export interface ImmutableSet<K> {
@@ -126,7 +126,7 @@ const ImmutableSetImpl =
     };
 
     const find = (predicate: (key: K) => boolean): Optional<K> => {
-      return NullableOptional(root?.find(predicate)?.key());
+      return Optional(root?.find(predicate)?.key());
     };
 
     const reduce = <R>(callback: (accumulator: R, key: K) => R, initial: R): R => {

@@ -6,6 +6,7 @@ import { Status } from 'domains/streaming';
 
 import { Builder } from 'tests/factories';
 import { URLFactory } from 'tests/factories/domains/common/uri';
+import { ChannelIdentifierFactory } from 'tests/factories/domains/monitoring';
 import {
   LiveStreamFactory,
   LiveStreamIdentifierFactory,
@@ -20,13 +21,15 @@ describe('Package translator', () => {
       describe('successfully', () => {
         it('should translate returns SuccessResult with valid media', () => {
           const baseURL = 'https://example.com/';
-          const identifier = Builder(LiveStreamIdentifierFactory).build();
+
+          const platform = PlatformType.YOUTUBE;
+          const identifier = Builder(LiveStreamIdentifierFactory).build({ platform });
 
           const expected = Builder(LiveStreamFactory).build({
             identifier,
             url: Builder(LiveStreamURLFactory).build({
               value: Builder(URLFactory).build({ value: `${baseURL}${identifier.value}` }),
-              platform: PlatformType.YOUTUBE,
+              channel: Builder(ChannelIdentifierFactory).build({ platform }),
             }),
             status: Builder(StatusFactory).build({ exclusion: Status.ENDED }),
           });

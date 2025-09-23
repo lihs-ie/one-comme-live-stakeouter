@@ -1,9 +1,10 @@
 import { errAsync, okAsync } from 'neverthrow';
 
-import { CommonError, conflict, NotFoundError } from 'aspects/error';
+import { CommonError, conflict, AggregateNotFoundError } from 'aspects/error';
 
 import { ImmutableList, ImmutableMap } from 'domains/common/collections';
 import { ImmutableDate } from 'domains/common/date';
+import { PlatformType } from 'domains/common/platform';
 import { URL } from 'domains/common/uri';
 import { LiveStreamIdentifier } from 'domains/streaming';
 import {
@@ -20,20 +21,24 @@ import { Builder, Factory, StringFactory } from 'tests/factories/builder';
 import { uuidV4FromSeed } from 'tests/helpers';
 
 import { ImmutableDateFactory } from '../common/date';
+import { PlatformTypeFactory } from '../common/platform';
 import { URLFactory } from '../common/uri';
 import { LiveStreamIdentifierFactory } from '../streaming';
 
 export type ServiceIdentifierProperties = {
   value: string;
+  platform: PlatformType;
 };
 
 export const ServiceIdentifierFactory = Factory<ServiceIdentifier, ServiceIdentifierProperties>({
   instantiate: properties => ServiceIdentifier(properties),
   prepare: (overrides, seed) => ({
     value: overrides.value ?? uuidV4FromSeed(seed),
+    platform: overrides.platform ?? Builder(PlatformTypeFactory).buildWith(seed),
   }),
   retrieve: properties => ({
     value: properties.value,
+    platform: properties.platform,
   }),
 });
 
@@ -192,25 +197,26 @@ export const ViewerServiceRepositoryFactory = Factory<
       properties.links ?? ImmutableMap.empty();
 
     return {
+      next: (platform: PlatformType) => {
+        let identifier = Builder(ServiceIdentifierFactory).build({ platform });
+
+        while (services.contains(identifier)) {
+          identifier = Builder(ServiceIdentifierFactory).build({ platform });
+        }
+
+        return okAsync(identifier);
+      },
       find: (identifier: ServiceIdentifier) =>
         services.get(identifier).ifPresentOrElse(
-          instance => okAsync<ViewerService, NotFoundError>(instance),
+          instance => okAsync<ViewerService, AggregateNotFoundError<ServiceIdentifier>>(instance),
           () =>
-            errAsync<ViewerService, NotFoundError>({
-              type: 'not-found',
+            errAsync<ViewerService, AggregateNotFoundError<ServiceIdentifier>>({
+              type: 'aggregate-not-found',
               context: JSON.stringify(identifier),
+              identifier,
             })
         ),
-      findByStream: (stream: LiveStreamIdentifier) =>
-        links.get(stream).ifPresentOrElse(
-          sid =>
-            services.get(sid).ifPresentOrElse(
-              instance => okAsync<ViewerService, NotFoundError>(instance),
-              () =>
-                errAsync<ViewerService, NotFoundError>({ type: 'not-found', context: 'service' })
-            ),
-          () => errAsync<ViewerService, NotFoundError>({ type: 'not-found', context: 'link' })
-        ),
+      search: () => okAsync(ImmutableList.fromArray(services.values())),
       persist: (instance: ViewerService) =>
         services.get(instance.identifier).ifPresentOrElse(
           _ => errAsync<void, CommonError>(conflict(JSON.stringify(instance))),
@@ -226,12 +232,13 @@ export const ViewerServiceRepositoryFactory = Factory<
             services = services.remove(identifier);
             links = links.filter((_, sid) => !sid.equals(identifier));
             properties.onTerminate?.(instance);
-            return okAsync<void, NotFoundError>();
+            return okAsync<void, AggregateNotFoundError<ServiceIdentifier>>();
           },
           () =>
-            errAsync<void, NotFoundError>({
-              type: 'not-found',
+            errAsync<void, AggregateNotFoundError<ServiceIdentifier>>({
+              type: 'aggregate-not-found',
               context: JSON.stringify(identifier),
+              identifier,
             })
         ),
     };
@@ -244,3 +251,29 @@ export const ViewerServiceRepositoryFactory = Factory<
     throw new Error('Repository cannot be retrieved.');
   },
 });
+
+expect.extend({
+  toBeSameViewerService(actual: ViewerService, expected: ViewerService) {
+    expect(actual.identifier).toEqualValueObject(expected.identifier);
+    expect(actual.name).toBe(expected.name);
+    expect(actual.url).toEqualValueObject(expected.url);
+    expect(actual.enabled).toBe(expected.enabled);
+    expect(actual.speech).toBe(expected.speech);
+    expect(actual.color).toEqualValueObject(expected.color);
+    expect(actual.write).toBe(expected.write);
+    expect(actual.options).toEqualValueObject(expected.options);
+
+    return {
+      message: () => 'OK',
+      pass: true,
+    };
+  },
+});
+
+declare global {
+  namespace jest {
+    interface Matchers<R> {
+      toBeSameViewerService(expected: ViewerService): R;
+    }
+  }
+}

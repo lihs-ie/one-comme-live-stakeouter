@@ -27,11 +27,7 @@ export abstract class Resource<T, O extends object, Q extends object = object> {
   ) {}
 
   // リクエストを実行し、レスポンスを生成する
-  public handle(request: Request, uri: string): Response {
-    if (!this.matches(request, uri)) {
-      throw new Error('Request not match.');
-    }
-
+  public handle(request: Request): Response {
     return this.createResponse(request);
   }
 
@@ -43,7 +39,7 @@ export abstract class Resource<T, O extends object, Q extends object = object> {
   public abstract code(): string;
 
   // リクエストが自身へのものかどうか判定する
-  public abstract matches(request: Request, uri: string): boolean;
+  public abstract matches(request: Request, uri: string, body: string | null): boolean;
 
   public abstract content(): string;
 
@@ -83,7 +79,7 @@ export abstract class Resource<T, O extends object, Q extends object = object> {
     return null;
   }
 
-  protected createResponse(request: Request, _?: object): Response {
+  protected createResponse(request: Request): Response {
     switch (this.type) {
       case Type.OK:
         return this.createSuccessfulResponse(request);
@@ -113,7 +109,7 @@ export abstract class Resource<T, O extends object, Q extends object = object> {
     return this.createCustomResponse(request) ?? new Response(null, { status: 500 });
   }
 
-  protected isModel<T extends O>(schema: z.ZodObject, overrides?: O): overrides is T {
+  protected isModel<T extends O>(schema: z.ZodObject | z.ZodType, overrides?: O): overrides is T {
     return schema.safeParse(overrides).success;
   }
 }
@@ -131,8 +127,10 @@ export abstract class Upstream {
   // リクエストを実行する
   public async handle(request: Request): Promise<MockResponse> {
     const uri = request.url.replace(new RegExp(`^${this.endpoint}`), '');
+    const bodyText = ['POST', 'PUT'].includes(request.method) ? await request.text() : null;
+
     const resource = this.resources.find((_: string, resource: Resource<unknown, object, object>) =>
-      resource.matches(request, uri)
+      resource.matches(request, uri, bodyText)
     );
 
     if (!resource.isPresent()) {
@@ -142,7 +140,7 @@ export abstract class Upstream {
       };
     }
 
-    const response = resource.get().handle(request, uri);
+    const response = resource.get().handle(request);
 
     return {
       body: await response.text(),
@@ -182,7 +180,7 @@ export const inject = (...upstreams: Upstream[]): void => {
   fetchMock.mockResponse(UpstreamRouter(...upstreams));
 };
 
-export abstract class MediaFactory<T extends Readonly<Record<string, unknown>>, M extends object> {
+export abstract class MediaFactory<T, M extends object> {
   protected readonly _data: Required<T>;
 
   public constructor(protected readonly overrides?: T | M) {
@@ -201,8 +199,8 @@ export abstract class MediaFactory<T extends Readonly<Record<string, unknown>>, 
 
   protected abstract fill(overrides?: T | M): Required<T>;
 
-  protected isModel(schema: z.ZodObject, overrides?: T | M): overrides is M {
-    if (!overrides) {
+  protected isModel(schema: z.ZodObject | z.ZodType, overrides?: T | M): overrides is M {
+    if (overrides === undefined) {
       return false;
     }
 

@@ -31,7 +31,7 @@ export class LiveStreamResource extends Resource<CommonType, Overrides, object> 
       return false;
     }
 
-    if (!uri.startsWith(`watch/${this.identifier.value}/programinfo`)) {
+    if (!uri.startsWith(`/watch/${this.identifier.value}/programinfo`)) {
       return false;
     }
 

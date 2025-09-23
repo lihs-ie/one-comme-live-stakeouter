@@ -1,7 +1,7 @@
 import { err, Result } from 'neverthrow';
 import { ZodError } from 'zod';
 
-import { NotFoundError, ValidationError, validationError } from 'aspects/error';
+import { RouteError, ValidationError, validationError } from 'aspects/error';
 
 import { ImmutableDate } from 'domains/common/date';
 import { PlatformType } from 'domains/common/platform';
@@ -14,8 +14,8 @@ import { Media } from './media-types';
 
 export const Translator = (
   baseURL: string
-): BaseTranslator<Media, LiveStream, ValidationError | NotFoundError> => ({
-  translate: (media: Media): Result<LiveStream, ValidationError | NotFoundError> => {
+): BaseTranslator<Media, LiveStream, ValidationError | RouteError> => ({
+  translate: (media: Media): Result<LiveStream, ValidationError | RouteError> => {
     return media.items
       .find(item => item.snippet.liveBroadcastContent === 'live')
       .ifPresentOrElse(
@@ -23,12 +23,17 @@ export const Translator = (
           Result.fromThrowable(
             () =>
               LiveStream({
-                identifier: LiveStreamIdentifier({ value: entry.id.videoId }),
+                identifier: LiveStreamIdentifier({
+                  value: entry.id.videoId,
+                  platform: PlatformType.YOUTUBE,
+                }),
                 title: entry.snippet.title,
                 url: LiveStreamURL({
                   value: URL({ value: `${baseURL}${entry.id.videoId}` }),
-                  platform: PlatformType.YOUTUBE,
-                  channel: ChannelIdentifier({ value: entry.snippet.channelId }),
+                  channel: ChannelIdentifier({
+                    value: entry.snippet.channelId,
+                    platform: PlatformType.YOUTUBE,
+                  }),
                 }),
                 startedAt: ImmutableDate.create(entry.snippet.publishedAt),
                 finishedAt: null,

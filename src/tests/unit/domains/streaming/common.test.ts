@@ -1,4 +1,3 @@
-import { ImmutableSet } from 'domains/common/collections';
 import { PlatformType } from 'domains/common/platform';
 import {
   LiveStream,
@@ -29,7 +28,10 @@ describe('Package common', () => {
   describe('LiveStreamIdentifier', () => {
     ValueObjectTest(
       LiveStreamIdentifier,
-      { value: Builder(StringFactory(1, 1)).build() },
+      {
+        value: Builder(StringFactory(1, 1)).build(),
+        platform: Builder(PlatformTypeFactory).build(),
+      },
       [
         { value: Builder(StringFactory(1, 64)).build() },
         { value: Builder(StringFactory(64, 64)).build() },
@@ -39,30 +41,34 @@ describe('Package common', () => {
   });
 
   describe('LiveStreamURL', () => {
+    const platform = Builder(PlatformTypeFactory).build();
+
     ValueObjectTest(
       LiveStreamURL,
       {
         value: Builder(URLFactory).build(),
-        platform: Builder(PlatformTypeFactory).build({
-          exclusion: ImmutableSet.fromArray<PlatformType>([
-            PlatformType.NICONICO,
-            PlatformType.TWITCH,
-          ]),
-        }),
-        channel: Builder(ChannelIdentifierFactory).build(),
+        channel: Builder(ChannelIdentifierFactory).build({ platform }),
       },
-      [{ platform: PlatformType.NICONICO }, { platform: PlatformType.TWITCH }],
-      [{ value: 'invalid' }, { value: 123 }, { platform: 'invalid' }, { channel: 'invalid' }]
+      Object.values(PlatformType)
+        .filter(candidate => candidate !== platform)
+        .map(platform => ({
+          channel: Builder(ChannelIdentifierFactory).build({ platform }),
+        })),
+      [{ value: 'invalid' }, { value: 123 }, { channel: 'invalid' }]
     );
   });
 
   describe('LiveStreamSnapshot', () => {
+    const platform = Builder(PlatformTypeFactory).build();
+
     ValueObjectTest(
       LiveStreamSnapshot,
       {
-        identifier: Builder(LiveStreamIdentifierFactory).build(),
+        identifier: Builder(LiveStreamIdentifierFactory).build({ platform }),
         title: Builder(StringFactory(1, 128)).build(),
-        url: Builder(LiveStreamURLFactory).build(),
+        url: Builder(LiveStreamURLFactory).build({
+          channel: Builder(ChannelIdentifierFactory).build({ platform }),
+        }),
         startedAt: Builder(ImmutableDateFactory).build(),
         finishedAt: null,
         status: Builder(StatusFactory).build({ exclusion: Status.ENDED }),
@@ -89,6 +95,18 @@ describe('Package common', () => {
           finishedAt: null,
           status: Status.ENDED,
         },
+        {
+          identifier: Builder(LiveStreamIdentifierFactory).build({
+            platform: Builder(PlatformTypeFactory).build({ exclusion: platform }),
+          }),
+        },
+        {
+          url: Builder(LiveStreamURLFactory).build({
+            channel: Builder(ChannelIdentifierFactory).build({
+              platform: Builder(PlatformTypeFactory).build({ exclusion: platform }),
+            }),
+          }),
+        },
       ]
     );
   });
@@ -97,9 +115,12 @@ describe('Package common', () => {
     describe('instantiate', () => {
       describe('successfully', () => {
         it('should be returns LiveStream', () => {
-          const identifier = Builder(LiveStreamIdentifierFactory).build();
+          const platform = Builder(PlatformTypeFactory).build();
+          const identifier = Builder(LiveStreamIdentifierFactory).build({ platform });
           const title = Builder(StringFactory(1, 128)).build();
-          const url = Builder(LiveStreamURLFactory).build();
+          const url = Builder(LiveStreamURLFactory).build({
+            channel: Builder(ChannelIdentifierFactory).build({ platform }),
+          });
           const startedAt = Builder(ImmutableDateFactory).build();
           const finishedAt = Builder(ImmutableDateFactory).build({
             value: startedAt.timestamp + 100,

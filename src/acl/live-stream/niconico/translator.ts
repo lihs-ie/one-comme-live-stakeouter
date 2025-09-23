@@ -42,8 +42,10 @@ export const Translator = (
           title: media.data.title,
           url: LiveStreamURL({
             value: URL({ value: `${baseURL}${identifier.value}` }),
-            platform: PlatformType.NICONICO,
-            channel: ChannelIdentifier({ value: media.data.broadcaster.id }),
+            channel: ChannelIdentifier({
+              value: media.data.broadcaster.id,
+              platform: PlatformType.NICONICO,
+            }),
           }),
           startedAt: ImmutableDate.create(media.data.beginAt),
           finishedAt: ImmutableDate.create(media.data.endAt),

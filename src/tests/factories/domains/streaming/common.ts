@@ -1,6 +1,6 @@
 import { errAsync, okAsync } from 'neverthrow';
 
-import { CommonError, conflict, NotFoundError } from 'aspects/error';
+import { CommonError, conflict, AggregateNotFoundError } from 'aspects/error';
 
 import { ImmutableList, ImmutableMap } from 'domains/common/collections';
 import { ImmutableDate } from 'domains/common/date';
@@ -28,6 +28,7 @@ import { ChannelIdentifierFactory } from '../monitoring';
 
 export type LiveStreamIdentifierProperties = {
   value: string;
+  platform: PlatformType;
 };
 
 export const LiveStreamIdentifierFactory = Factory<
@@ -37,15 +38,16 @@ export const LiveStreamIdentifierFactory = Factory<
   instantiate: properties => LiveStreamIdentifier(properties),
   prepare: (overrides, seed) => ({
     value: overrides.value ?? Builder(StringFactory(1, 64)).buildWith(seed),
+    platform: overrides.platform ?? Builder(PlatformTypeFactory).buildWith(seed),
   }),
   retrieve: properties => ({
     value: properties.value,
+    platform: properties.platform,
   }),
 });
 
 export type LiveStreamURLProperties = {
   value: URL;
-  platform: PlatformType;
   channel: ChannelIdentifier;
 };
 
@@ -53,12 +55,10 @@ export const LiveStreamURLFactory = Factory<LiveStreamURL, LiveStreamURLProperti
   instantiate: properties => LiveStreamURL(properties),
   prepare: (overrides, seed): LiveStreamURLProperties => ({
     value: overrides.value ?? Builder(URLFactory).buildWith(seed),
-    platform: overrides.platform ?? Builder(PlatformTypeFactory).buildWith(seed),
     channel: overrides.channel ?? Builder(ChannelIdentifierFactory).buildWith(seed),
   }),
   retrieve: (instance: LiveStreamURL): LiveStreamURLProperties => ({
     value: instance.value,
-    platform: instance.platform,
     channel: instance.channel,
   }),
 });
@@ -205,19 +205,25 @@ export const LiveStreamRepositoryFactory = Factory<
     return {
       find: (identifier: LiveStreamIdentifier) =>
         instances.get(identifier).ifPresentOrElse(
-          instance => okAsync<LiveStream, NotFoundError>(instance),
+          instance => okAsync(instance),
           () =>
-            errAsync<LiveStream, NotFoundError>({
-              type: 'not-found',
+            errAsync<LiveStream, AggregateNotFoundError<LiveStreamIdentifier>>({
+              type: 'aggregate-not-found',
               context: JSON.stringify(identifier),
+              identifier,
             })
         ),
       findByChannel: (channel: ChannelIdentifier) =>
         instances
           .find((_, instance) => channel.equals(instance.url.channel))
           .ifPresentOrElse(
-            instance => okAsync<LiveStream, NotFoundError>(instance),
-            () => errAsync<LiveStream, NotFoundError>({ type: 'not-found', context: channel.value })
+            instance => okAsync(instance),
+            () =>
+              errAsync<LiveStream, AggregateNotFoundError<ChannelIdentifier>>({
+                type: 'aggregate-not-found',
+                context: channel.value,
+                identifier: channel,
+              })
           ),
       persist: (instance: LiveStream) => {
         return instances.get(instance.identifier).ifPresentOrElse(
@@ -238,12 +244,13 @@ export const LiveStreamRepositoryFactory = Factory<
 
             properties.onTerminate?.(instance);
 
-            return okAsync<void, NotFoundError>();
+            return okAsync();
           },
           () =>
-            errAsync<void, NotFoundError>({
-              type: 'not-found',
+            errAsync({
+              type: 'aggregate-not-found',
               context: JSON.stringify(identifier),
+              identifier,
             })
         );
       },

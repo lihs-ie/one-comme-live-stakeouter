@@ -1,7 +1,7 @@
 import { ResultAsync } from 'neverthrow';
 import { z } from 'zod';
 
-import { CommonError, NotFoundError } from 'aspects/error';
+import { CommonError } from 'aspects/error';
 import { Logger } from 'aspects/log';
 import { createFunctionSchema } from 'aspects/type';
 
@@ -16,6 +16,7 @@ import { ChannelIdentifier, channelIdentifierSchema } from '../monitoring';
 export const liveStreamIdentifierSchema = valueObjectSchema
   .extend({
     value: z.string().min(1).max(64),
+    platform: platformTypeSchema,
   })
   .brand('LiveStreamIdentifier');
 
@@ -26,7 +27,6 @@ export const LiveStreamIdentifier = ValueObject<LiveStreamIdentifier>(liveStream
 export const liveStreamURLSchema = valueObjectSchema
   .extend({
     value: urlSchema,
-    platform: platformTypeSchema,
     channel: channelIdentifierSchema,
   })
   .brand('LiveStreamURL');
@@ -54,6 +54,19 @@ export const liveStreamSnapshotSchema = valueObjectSchema
     finishedAt: immutableDateSchema.nullable(),
     status: statusSchema,
   })
+  .refine(
+    data => {
+      if (data.identifier.platform !== data.url.channel.platform) {
+        return false;
+      }
+
+      return true;
+    },
+    {
+      error: 'LiveStreamIdentifier and LiveStreamURL must have the same platform',
+      path: ['url', 'identifier'],
+    }
+  )
   .refine(
     data => {
       if (data.finishedAt !== null && data.finishedAt.timestamp < data.startedAt.timestamp) {
@@ -90,6 +103,19 @@ export const liveStreamSchema = z
     status: statusSchema,
     snapshot: createFunctionSchema(z.function({ input: [], output: liveStreamSnapshotSchema })),
   })
+  .refine(
+    data => {
+      if (data.identifier.platform !== data.url.channel.platform) {
+        return false;
+      }
+
+      return true;
+    },
+    {
+      error: 'LiveStreamIdentifier and LiveStreamURL must have the same platform',
+      path: ['url', 'identifier'],
+    }
+  )
   .refine(
     data => {
       if (data.finishedAt !== null && data.finishedAt.timestamp < data.startedAt.timestamp) {
@@ -148,10 +174,10 @@ export type StreamEnded = z.infer<typeof streamEndedSchema>;
 export const StreamEnded = createEvent<StreamEnded>(streamEndedSchema, 'StreamEnded');
 
 export interface LiveStreamRepository {
-  find: (identifier: LiveStreamIdentifier) => ResultAsync<LiveStream, NotFoundError>;
-  findByChannel: (channel: ChannelIdentifier) => ResultAsync<LiveStream, NotFoundError>;
+  find: (identifier: LiveStreamIdentifier) => ResultAsync<LiveStream, CommonError>;
+  findByChannel: (channel: ChannelIdentifier) => ResultAsync<LiveStream, CommonError>;
   persist: (stream: LiveStream) => ResultAsync<void, CommonError>;
-  terminate: (identifier: LiveStreamIdentifier) => ResultAsync<void, NotFoundError>;
+  terminate: (identifier: LiveStreamIdentifier) => ResultAsync<void, CommonError>;
 }
 
 export const LiveStreamSubscriber = (

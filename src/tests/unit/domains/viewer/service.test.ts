@@ -9,6 +9,7 @@ import {
 
 import { Builder, StringFactory } from 'tests/factories';
 import { ImmutableDateFactory } from 'tests/factories/domains/common/date';
+import { PlatformTypeFactory } from 'tests/factories/domains/common/platform';
 import { URLFactory } from 'tests/factories/domains/common/uri';
 import { LiveStreamIdentifierFactory } from 'tests/factories/domains/streaming';
 import {
@@ -25,7 +26,7 @@ describe('Package service', () => {
   describe('ServiceIdentifier', () => {
     ValueObjectTest(
       ServiceIdentifier,
-      { value: uuidV4FromSeed(0) },
+      { value: uuidV4FromSeed(0), platform: Builder(PlatformTypeFactory).build() },
       [{ value: uuidV4FromSeed(1) }, { value: uuidV4FromSeed(2) }],
       [{ value: '' }, { value: 'a'.repeat(65) }, { value: 123 }]
     );

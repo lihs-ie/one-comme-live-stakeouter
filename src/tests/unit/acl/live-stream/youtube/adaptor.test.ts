@@ -1,4 +1,5 @@
 import { RawMedia, Reader, Translator, YoutubeAdaptor } from 'acl/live-stream/youtube';
+import { HttpClient } from 'aspects/http';
 
 import { ImmutableRange } from 'domains/common/collections';
 import { PlatformType } from 'domains/common/platform';
@@ -34,8 +35,9 @@ describe('Package adaptor', () => {
         it('should translate returns SuccessResult with valid media', async () => {
           const baseURL = 'https://example.com/';
 
-          const identifier = Builder(LiveStreamIdentifierFactory).build();
-          const channel = Builder(ChannelIdentifierFactory).build();
+          const platform = PlatformType.YOUTUBE;
+          const identifier = Builder(LiveStreamIdentifierFactory).build({ platform });
+          const channel = Builder(ChannelIdentifierFactory).build({ platform });
 
           const expected = Builder(LiveStreamFactory).build({
             identifier,
@@ -43,7 +45,6 @@ describe('Package adaptor', () => {
               value: Builder(URLFactory).build({
                 value: `${baseURL}${identifier.value}`,
               }),
-              platform: PlatformType.YOUTUBE,
               channel,
             }),
             status: Builder(StatusFactory).build({ exclusion: Status.ENDED }),
@@ -55,7 +56,12 @@ describe('Package adaptor', () => {
             upstream.addLiveStream(Type.OK, { model: expected, apiKey })
           );
 
-          const adaptor = YoutubeAdaptor(endpoint, apiKey, Reader, Translator(baseURL));
+          const adaptor = YoutubeAdaptor(
+            HttpClient({ baseURL: endpoint }),
+            apiKey,
+            Reader,
+            Translator(baseURL)
+          );
 
           const actual = await adaptor.findByChannel(channel);
 
@@ -74,7 +80,7 @@ describe('Package adaptor', () => {
           );
 
           const adaptor = YoutubeAdaptor(
-            endpoint,
+            HttpClient({ baseURL: endpoint }),
             apiKey,
             Reader,
             Translator('http://example.com/')
@@ -135,7 +141,7 @@ describe('Package adaptor', () => {
           );
 
           const adaptor = YoutubeAdaptor(
-            endpoint,
+            HttpClient({ baseURL: endpoint }),
             apiKey,
             Reader,
             Translator('http://example.com/')
@@ -158,7 +164,7 @@ describe('Package adaptor', () => {
             prepare(endpoint, upstream => upstream.addLiveStream(type, { apiKey, channel }));
 
             const adaptor = YoutubeAdaptor(
-              endpoint,
+              HttpClient({ baseURL: endpoint }),
               apiKey,
               Reader,
               Translator('http://example.com/')
