@@ -173,6 +173,16 @@ export type StreamEnded = z.infer<typeof streamEndedSchema>;
 
 export const StreamEnded = createEvent<StreamEnded>(streamEndedSchema, 'StreamEnded');
 
+export const streamNotFound = eventSchema(z.literal('StreamNotFound'))
+  .extend({
+    channel: channelIdentifierSchema,
+  })
+  .brand('StreamNotFound');
+
+export type StreamNotFound = z.infer<typeof streamNotFound>;
+
+export const StreamNotFound = createEvent<StreamNotFound>(streamNotFound, 'StreamNotFound');
+
 export interface LiveStreamRepository {
   find: (identifier: LiveStreamIdentifier) => ResultAsync<LiveStream, CommonError>;
   findByChannel: (channel: ChannelIdentifier) => ResultAsync<LiveStream, CommonError>;

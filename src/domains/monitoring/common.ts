@@ -139,6 +139,41 @@ export const MonitoringStarted = createEvent<MonitoringStarted>(
   'MonitoringStarted'
 );
 
+export const monitoringTickSchema = eventSchema(z.literal('MonitoringTick')).brand(
+  'MonitoringTick'
+);
+
+export type MonitoringTick = z.infer<typeof monitoringTickSchema>;
+
+export const MonitoringTick = createEvent<MonitoringTick>(monitoringTickSchema, 'MonitoringTick');
+
+export const channelCheckScheduled = eventSchema(z.literal('ChannelCheckScheduled'))
+  .extend({
+    channel: channelIdentifierSchema,
+  })
+  .brand('ChannelCheckScheduled');
+
+export type ChannelCheckScheduled = z.infer<typeof channelCheckScheduled>;
+
+export const ChannelCheckScheduled = createEvent<ChannelCheckScheduled>(
+  channelCheckScheduled,
+  'ChannelCheckScheduled'
+);
+
+export const monitoringFailedSchema = eventSchema(z.literal('MonitoringFailed'))
+  .extend({
+    message: z.string().min(1).max(1024),
+    channel: channelIdentifierSchema.nullable(),
+  })
+  .brand('MonitoringFailed');
+
+export type MonitoringFailed = z.infer<typeof monitoringFailedSchema>;
+
+export const MonitoringFailed = createEvent<MonitoringFailed>(
+  monitoringFailedSchema,
+  'MonitoringFailed'
+);
+
 export const MonitoringSubscriber = (repository: ChannelRepository, logger: Logger): Subscriber => {
   return {
     subscribe: broker => {

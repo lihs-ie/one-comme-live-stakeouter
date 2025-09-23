@@ -1,9 +1,12 @@
 import { ImmutableDate } from 'domains/common/date';
 import {
   Channel,
+  ChannelCheckScheduled,
   ChannelIdentifier,
+  MonitoringFailed,
   MonitoringSetting,
   MonitoringStarted,
+  MonitoringTick,
   Rule,
 } from 'domains/monitoring';
 
@@ -178,6 +181,65 @@ describe('Package channel', () => {
           expect(occurredAt).toEqualValueObject(event.occurredAt);
           expect(channel).toEqualValueObject(event.channel);
           expect(event.type).toBe('MonitoringStarted');
+        });
+      });
+    });
+  });
+
+  describe('MonitoringTick', () => {
+    describe('instantiate', () => {
+      describe('successfully', () => {
+        it('should return event', () => {
+          const identifier = uuidV4FromSeed(Math.random());
+          const occurredAt = Builder(ImmutableDateFactory).build();
+
+          const event = MonitoringTick({ identifier, occurredAt });
+
+          expect(identifier).toBe(event.identifier);
+          expect(occurredAt).toEqualValueObject(event.occurredAt);
+          expect(event.type).toBe('MonitoringTick');
+        });
+      });
+    });
+  });
+
+  describe('ChannelCheckScheduled', () => {
+    describe('instantiate', () => {
+      describe('successfully', () => {
+        it('should return event', () => {
+          const channel = Builder(ChannelIdentifierFactory).build();
+          const identifier = uuidV4FromSeed(Math.random());
+          const occurredAt = Builder(ImmutableDateFactory).build();
+
+          const event = ChannelCheckScheduled({ channel, identifier, occurredAt });
+
+          expect(identifier).toBe(event.identifier);
+          expect(occurredAt).toEqualValueObject(event.occurredAt);
+          expect(channel).toEqualValueObject(event.channel);
+          expect(event.type).toBe('ChannelCheckScheduled');
+        });
+      });
+    });
+  });
+
+  describe('MonitoringFailed', () => {
+    describe('instantiate', () => {
+      describe('successfully', () => {
+        it('should return event', () => {
+          const channel = Builder(ChannelIdentifierFactory).build();
+          const identifier = uuidV4FromSeed(Math.random());
+          const occurredAt = Builder(ImmutableDateFactory).build();
+          const message = Builder(StringFactory(1, 1024)).build();
+
+          const event = MonitoringFailed({ channel, identifier, occurredAt, message });
+
+          expect(identifier).toBe(event.identifier);
+          expect(occurredAt).toEqualValueObject(event.occurredAt);
+          expect(channel).toBeNullOr(event.channel, (expectedChannel, actualChannel) => {
+            expect(expectedChannel).toEqualValueObject(actualChannel);
+          });
+          expect(message).toBe(event.message);
+          expect(event.type).toBe('MonitoringFailed');
         });
       });
     });

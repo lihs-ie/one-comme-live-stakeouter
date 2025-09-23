@@ -2,7 +2,7 @@ import { ResultAsync } from 'neverthrow';
 import { z } from 'zod';
 
 import { CommonError } from 'aspects/error';
-import { functionSchemaReturning } from 'aspects/type';
+import { createFunctionSchema, functionSchemaReturning } from 'aspects/type';
 
 import { ImmutableList } from 'domains/common/collections';
 
@@ -63,6 +63,25 @@ export type ServiceMeta = ValueObject<z.infer<typeof serviceMetaSchema>>;
 
 export const ServiceMeta = ValueObject<ServiceMeta>(serviceMetaSchema);
 
+export const viewerServiceSnapshotSchema = valueObjectSchema
+  .extend({
+    identifier: serviceIdentifierSchema,
+    name: z.string().min(1).max(100),
+    url: urlSchema,
+    enabled: z.boolean(),
+    speech: z.boolean(),
+    color: rgbSchema,
+    write: z.boolean(),
+    options: serviceOptionsSchema,
+  })
+  .brand('ViewerServiceSnapshot');
+
+export type ViewerServiceSnapshot = ValueObject<z.infer<typeof viewerServiceSnapshotSchema>>;
+
+export const ViewerServiceSnapshot = ValueObject<ViewerServiceSnapshot>(
+  viewerServiceSnapshotSchema
+);
+
 const viewerBaseSchema = z.object({
   identifier: serviceIdentifierSchema,
   name: z.string().min(1).max(100),
@@ -72,6 +91,7 @@ const viewerBaseSchema = z.object({
   color: rgbSchema,
   write: z.boolean(),
   options: serviceOptionsSchema,
+  snapshot: createFunctionSchema(z.function({ input: [], output: viewerServiceSnapshotSchema })),
 });
 
 export interface ViewerServiceProperties extends z.infer<typeof viewerBaseSchema> {
@@ -98,26 +118,73 @@ export const ViewerService = (properties: {
   write: boolean;
   options: ServiceOptions;
 }) => {
+  const snapshot =
+    (candidates: {
+      identifier: ServiceIdentifier;
+      name: string;
+      url: URL;
+      enabled: boolean;
+      speech: boolean;
+      color: RGB;
+      write: boolean;
+      options: ServiceOptions;
+    }) =>
+    (): ViewerServiceSnapshot =>
+      ViewerServiceSnapshot(candidates);
+
   const enable = (enabled: boolean): ViewerService =>
     viewerServiceSchema.parse({
-      ...properties,
+      identifier: properties.identifier,
+      name: properties.name,
+      url: properties.url,
+      color: properties.color,
+      speech: properties.speech,
+      write: properties.write,
+      options: properties.options,
       enabled,
       enable: () => enable(true),
       disable: () => disable(false),
+      snapshot: snapshot({
+        identifier: properties.identifier,
+        name: properties.name,
+        url: properties.url,
+        color: properties.color,
+        speech: properties.speech,
+        write: properties.write,
+        options: properties.options,
+        enabled,
+      }),
     });
 
   const disable = (enabled: boolean): ViewerService =>
     viewerServiceSchema.parse({
-      ...properties,
+      identifier: properties.identifier,
+      name: properties.name,
+      url: properties.url,
+      color: properties.color,
+      speech: properties.speech,
+      write: properties.write,
+      options: properties.options,
       enabled,
       enable: () => enable(true),
       disable: () => disable(false),
+      snapshot: snapshot({
+        identifier: properties.identifier,
+        name: properties.name,
+        url: properties.url,
+        color: properties.color,
+        speech: properties.speech,
+        write: properties.write,
+        options: properties.options,
+        enabled,
+      }),
     });
 
   return viewerServiceSchema.parse({
     ...properties,
     enable: () => enable(true),
     disable: () => disable(false),
+    snapshot: snapshot(properties),
   });
 };
 
@@ -133,6 +200,19 @@ export type ServiceCreated = z.infer<typeof serviceCreatedEventSchema>;
 export const ServiceCreated = createEvent<ServiceCreated>(
   serviceCreatedEventSchema,
   'ServiceCreated'
+);
+
+export const serviceUpdatedEventSchema = eventSchema(z.literal('ServiceUpdated'))
+  .extend({
+    before: viewerServiceSnapshotSchema,
+  })
+  .brand('ServiceUpdatedEvent');
+
+export type ServiceUpdated = z.infer<typeof serviceUpdatedEventSchema>;
+
+export const ServiceUpdated = createEvent<ServiceUpdated>(
+  serviceUpdatedEventSchema,
+  'ServiceUpdated'
 );
 
 export interface ViewerServiceRepository {

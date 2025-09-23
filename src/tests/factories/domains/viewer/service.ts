@@ -15,6 +15,7 @@ import {
   ServiceOptions,
   ViewerService,
   ViewerServiceRepository,
+  ViewerServiceSnapshot,
 } from 'domains/viewer';
 
 import { Builder, Factory, StringFactory } from 'tests/factories/builder';
@@ -114,6 +115,44 @@ export const ServiceMetaFactory = Factory<ServiceMeta, ServiceMetaProperties>({
     total: properties.total,
     loggedIn: properties.loggedIn,
     loggedName: properties.loggedName,
+  }),
+});
+
+export type ViewerServiceSnapshotProperties = {
+  identifier: ServiceIdentifier;
+  name: string;
+  url: URL;
+  enabled: boolean;
+  speech: boolean;
+  color: RGB;
+  write: boolean;
+  options: ServiceOptions;
+};
+
+export const ViewerServiceSnapshotFactory = Factory<
+  ViewerServiceSnapshot,
+  ViewerServiceSnapshotProperties
+>({
+  instantiate: properties => ViewerServiceSnapshot(properties),
+  prepare: (overrides, seed) => ({
+    identifier: overrides.identifier ?? Builder(ServiceIdentifierFactory).buildWith(seed),
+    name: overrides.name ?? Builder(StringFactory(1, 100)).buildWith(seed),
+    url: overrides.url ?? Builder(URLFactory).buildWith(seed),
+    enabled: overrides.enabled ?? seed % 2 === 0,
+    speech: overrides.speech ?? seed % 2 === 0,
+    color: overrides.color ?? Builder(RGBFactory).buildWith(seed),
+    write: overrides.write ?? seed % 2 === 0,
+    options: overrides.options ?? Builder(ServiceOptionsFactory).buildWith(seed),
+  }),
+  retrieve: instance => ({
+    identifier: instance.identifier,
+    name: instance.name,
+    url: instance.url,
+    enabled: instance.enabled,
+    speech: instance.speech,
+    color: instance.color,
+    write: instance.write,
+    options: instance.options,
   }),
 });
 

@@ -6,6 +6,7 @@ import {
   LiveStreamURL,
   Status,
   StreamEnded,
+  StreamNotFound,
   StreamStarted,
 } from 'domains/streaming';
 
@@ -227,6 +228,25 @@ describe('Package common', () => {
           expect(occurredAt).toEqualValueObject(event.occurredAt);
           expect(stream).toEqualValueObject(event.stream);
           expect(event.type).toBe('StreamEnded');
+        });
+      });
+    });
+  });
+
+  describe('StreamNotFound', () => {
+    describe('instantiate', () => {
+      describe('successfully', () => {
+        it('should be returns event', () => {
+          const identifier = uuidV4FromSeed(Math.random());
+          const occurredAt = Builder(ImmutableDateFactory).build();
+          const channel = Builder(ChannelIdentifierFactory).build();
+
+          const event = StreamNotFound({ identifier, occurredAt, channel });
+
+          expect(identifier).toBe(event.identifier);
+          expect(occurredAt).toEqualValueObject(event.occurredAt);
+          expect(channel).toEqualValueObject(event.channel);
+          expect(event.type).toBe('StreamNotFound');
         });
       });
     });

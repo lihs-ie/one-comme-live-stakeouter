@@ -4,7 +4,9 @@ import {
   ServiceIdentifier,
   ServiceMeta,
   ServiceOptions,
+  ServiceUpdated,
   ViewerService,
+  ViewerServiceSnapshot,
 } from 'domains/viewer';
 
 import { Builder, StringFactory } from 'tests/factories';
@@ -17,6 +19,7 @@ import {
   ServiceIdentifierFactory,
   ServiceOptionsFactory,
   ViewerServiceFactory,
+  ViewerServiceSnapshotFactory,
 } from 'tests/factories/domains/viewer/service';
 import { uuidV4FromSeed } from 'tests/helpers';
 
@@ -107,6 +110,31 @@ describe('Package service', () => {
     );
   });
 
+  describe('ViewerServiceSnapshot', () => {
+    ValueObjectTest(
+      ViewerServiceSnapshot,
+      {
+        identifier: Builder(ServiceIdentifierFactory).build(),
+        name: Builder(StringFactory(1, 100)).build(),
+        url: Builder(URLFactory).build(),
+        enabled: true,
+        speech: true,
+        color: Builder(RGBFactory).build(),
+        write: true,
+        options: Builder(ServiceOptionsFactory).build(),
+      },
+      [{ enabled: false }, { speech: false }, { write: false }],
+      [
+        { name: '' },
+        { name: Builder(StringFactory(101, 101)).build() },
+        { url: 'invalid' },
+        { color: { red: -1, green: 0, blue: 0 } },
+        { color: { red: 256, green: 0, blue: 0 } },
+        { options: { outputLog: 'invalid' } },
+      ]
+    );
+  });
+
   describe('ViewerService', () => {
     describe('instantiate', () => {
       describe('successfully', () => {
@@ -171,6 +199,27 @@ describe('Package service', () => {
           ).toThrowError();
         });
       });
+
+      describe('snapshot', () => {
+        it('should return ViewerServiceSnapshot', () => {
+          const expected = Builder(ViewerServiceSnapshotFactory).build();
+
+          const service = ViewerService({
+            identifier: expected.identifier,
+            name: expected.name,
+            url: expected.url,
+            enabled: expected.enabled,
+            speech: expected.speech,
+            color: expected.color,
+            write: expected.write,
+            options: expected.options,
+          });
+
+          const actual = service.snapshot();
+
+          expect(actual).toEqualValueObject(expected);
+        });
+      });
     });
 
     describe('enable', () => {
@@ -208,6 +257,23 @@ describe('Package service', () => {
         expect(occurredAt).toEqualValueObject(event.occurredAt);
         expect(event.service).toEqualValueObject(service);
         expect(event.stream).toEqualValueObject(stream);
+      });
+    });
+  });
+
+  describe('ServiceUpdated', () => {
+    describe('instantiate', () => {
+      it('should return ServiceUpdated event', () => {
+        const identifier = uuidV4FromSeed(Math.random());
+        const occurredAt = Builder(ImmutableDateFactory).build();
+        const before = Builder(ViewerServiceSnapshotFactory).build();
+
+        const event = ServiceUpdated({ identifier, occurredAt, before });
+
+        expect(event.identifier).toBe(identifier);
+        expect(occurredAt).toEqualValueObject(event.occurredAt);
+        expect(event.before).toEqualValueObject(before);
+        expect(event.type).toBe('ServiceUpdated');
       });
     });
   });
