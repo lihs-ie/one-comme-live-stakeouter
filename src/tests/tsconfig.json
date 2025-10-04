@@ -1,8 +1,5 @@
 {
   "extends": "../../tsconfig.json",
   "exclude": ["../../node_modules"],
-  "include": ["**/*.ts", "**/*.tsx", "tests/**/*.ts", "tests/**/*.tsx", "../../vitest.setup.ts"],
-  "compilerOptions": {
-    "baseUrl": "../"
-  }
+  "include": ["**/*.ts", "**/*.tsx", "tests/**/*.ts", "tests/**/*.tsx", "../../vitest.setup.ts"]
 }

@@ -1,0 +1,16 @@
+.container {
+  min-height: 100vh;
+  background-color: #0f0f0f;
+}
+
+.main {
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}

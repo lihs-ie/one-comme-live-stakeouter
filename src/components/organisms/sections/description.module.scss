@@ -1,0 +1,33 @@
+.container {
+  background-color: #1a1a1a;
+  border: 1px solid #3a3a3a;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+}
+
+.contents {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.icon {
+  display: flex;
+  justify-content: center;
+
+  color: #60a5fa;
+}
+
+.title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #e5e5e5;
+  margin: 0 0 0.5rem 0;
+}
+
+.text {
+  color: #9ca3af;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  margin: 0;
+}

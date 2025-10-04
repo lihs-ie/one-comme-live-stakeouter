@@ -1,0 +1,28 @@
+.container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.enabled {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.enabled:hover {
+  background-color: #2563eb;
+}
+
+.disabled {
+  background-color: #3a3a3a;
+  color: #9ca3af;
+  cursor: not-allowed;
+}

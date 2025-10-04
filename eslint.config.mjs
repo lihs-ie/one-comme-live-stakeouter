@@ -10,13 +10,20 @@ import { defineConfig } from 'eslint/config';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
 
-// ESM環境での __dirname 代替
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig([
   // 無視パターン
   {
-    ignores: ['node_modules', 'dist', 'build', 'coverage', 'vitest.config.ts'],
+    ignores: [
+      'node_modules',
+      'dist',
+      'build',
+      'coverage',
+      'vite.config.plugin.ts',
+      'vite.config.ui.ts',
+      '.storybook',
+    ],
   },
 
   // JS推奨

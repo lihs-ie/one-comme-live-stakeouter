@@ -34,12 +34,24 @@
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
 
-    "baseUrl": "./src",
+    "paths": {
+      "@/*": ["./src/*"],
+      "aspects/*": ["./src/aspects/*"],
+      "domains/*": ["./src/domains/*"],
+      "providers/*": ["./src/providers/*"],
+      "components/*": ["./src/components/*"],
+      "infrastructures/*": ["./src/infrastructures/*"],
+      "workflows/*": ["./src/workflows/*"],
+      "plugin/*": ["./src/plugin/*"],
+      "acl/*": ["./src/acl/*"],
+      "config/*": ["./src/config/*"],
+      "tests/*": ["./src/tests/*"]
+    },
 
     "jsx": "react-jsx",
     "jsxImportSource": "react"
   },
-  "include": ["src/**/*", "vitest.setup.ts"],
+  "include": ["src/**/*", "vitest.setup.ts", "vite-env.d.ts"],
   "exclude": ["node_modules", "tests/**/*"],
   "ts-node": {
     "esm": true,

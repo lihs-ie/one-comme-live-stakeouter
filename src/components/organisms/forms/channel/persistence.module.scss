@@ -1,0 +1,44 @@
+.container {
+  background-color: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.header {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.icon {
+  color: #60a5fa;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #e5e5e5;
+}
+
+.label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #e5e5e5;
+}
+
+.buttons {
+  display: flex;
+  gap: 1rem;
+}
+
+@media (max-width: 640px) {
+  .buttons {
+    flex-direction: column;
+  }
+}

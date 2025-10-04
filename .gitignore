@@ -84,3 +84,5 @@ one-commentator.zip
 .husky/_
 
 node_modules
+
+*storybook.log
