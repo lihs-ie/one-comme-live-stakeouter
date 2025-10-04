@@ -16,7 +16,7 @@ export default defineConfig(({ mode }) => {
       emptyOutDir: false,
       sourcemap: true,
       rollupOptions: {
-        external: ['@onecomme.com/onesdk', 'electron-store', 'neverthrow', 'zod', 'crypto'],
+        external: ['@onecomme.com/onesdk', 'electron-store'],
         output: {
           format: 'cjs',
           exports: 'auto',
