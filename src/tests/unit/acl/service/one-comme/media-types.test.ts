@@ -122,6 +122,7 @@ describe('Package media-types', () => {
               version: dto.version,
               platform: dto.platform,
             },
+            keyword: dto.name,
           });
 
           const actual = writer.write(dto);

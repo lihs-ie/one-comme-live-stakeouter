@@ -42,8 +42,6 @@ export const ElectronStoreChannelRepository = (store: ElectronStore<SerializedCh
         switch (serialized.identifier.platform) {
           case 'youtube':
             return PlatformType.YOUTUBE;
-          case 'twitch':
-            return PlatformType.TWITCH;
           case 'niconico':
             return PlatformType.NICONICO;
           default:
@@ -72,7 +70,10 @@ export const ElectronStoreChannelRepository = (store: ElectronStore<SerializedCh
     },
   })(store => ({
     find: (identifier: ChannelIdentifier) => store.get(identifier.value),
-    monitoring: () => store.search(channel => channel.setting.isMonitoring),
+    monitoring: () =>
+      store.search(channel => {
+        return channel.setting.isMonitoring;
+      }),
     persist: (channel: Channel) => {
       return store.set(channel.identifier.value, channel);
     },

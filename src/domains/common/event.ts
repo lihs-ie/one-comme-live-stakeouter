@@ -1,4 +1,4 @@
-import { Result, ok } from 'neverthrow';
+import { Result, ResultAsync, ok } from 'neverthrow';
 import { z } from 'zod';
 
 import { CommonError } from 'aspects/error';
@@ -24,11 +24,11 @@ export interface Subscriber {
   subscribe: (broker: EventBroker) => EventBroker;
 }
 
-export type Consumer<T extends Event> = (event: T) => void;
+export type Consumer<T extends Event> = (event: T) => ResultAsync<void, CommonError>;
 
 export interface Listener<T extends Event> {
   eventType: T['type'];
-  handle: (event: T) => void;
+  handle: (event: T) => ResultAsync<void, CommonError>;
   match: <E extends Event>(event: E) => boolean;
 }
 
@@ -40,7 +40,7 @@ export const Listener = <T extends Event>(
     return eventType === comparand.type;
   };
 
-  const handle = (event: T): void => {
+  const handle = (event: T): ResultAsync<void, CommonError> => {
     return consumer(event);
   };
 
@@ -49,52 +49,21 @@ export const Listener = <T extends Event>(
 
 export interface EventBroker {
   publish: <T extends Event>(event: T) => Result<void, CommonError>;
+  publishAll: <T extends Event>(events: ImmutableList<T>) => Result<void[], CommonError>;
   listen: <T extends Event>(type: T['type'], consumer: Consumer<T>) => EventBroker;
+  consume: () => Result<void, CommonError>;
 }
 
 export interface QueueingDriver {
   enqueue: <T extends Event>(event: T) => Result<void, CommonError>;
   dequeue: <T extends Event>() => Result<T, CommonError>;
+  isEmpty: () => boolean;
 }
 
 export const EventBroker = (
   queue: QueueingDriver,
   listeners: ImmutableList<Listener<Event>> = ImmutableList.empty<Listener<Event>>()
 ): EventBroker => {
-  let dispatching = false;
-
-  const dispatch = (): Result<void, CommonError> => {
-    if (dispatching) {
-      return ok();
-    }
-
-    dispatching = true;
-    try {
-      while (true) {
-        const polled = queue.dequeue<Event>();
-        if (polled.isErr()) {
-          break;
-        }
-
-        const event = polled.value;
-
-        listeners.foreach(listener => {
-          if (listener.match(event)) {
-            try {
-              listener.handle(event);
-            } catch (_) {
-              // ignore error
-            }
-          }
-        });
-      }
-
-      return ok();
-    } finally {
-      dispatching = false;
-    }
-  };
-
   return {
     listen: <T extends Event>(type: T['type'], consumer: Consumer<T>): EventBroker => {
       const listener = Listener(type, consumer);
@@ -102,7 +71,23 @@ export const EventBroker = (
       return EventBroker(queue, listeners.addLast(listener as Listener<Event>));
     },
     publish: (event: Event): Result<void, CommonError> => {
-      return queue.enqueue(event).andThen(() => dispatch());
+      return queue.enqueue(event);
+    },
+    publishAll: <T extends Event>(events: ImmutableList<T>): Result<void[], CommonError> => {
+      return Result.combine(events.map(event => queue.enqueue(event)).toArray());
+    },
+    consume: (): Result<void, CommonError> => {
+      while (!queue.isEmpty()) {
+        queue.dequeue().map(event =>
+          listeners.foreach(listener => {
+            if (listener.match(event)) {
+              listener.handle(event);
+            }
+          })
+        );
+      }
+
+      return ok();
     },
   };
 };

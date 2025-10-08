@@ -170,7 +170,12 @@ const resolveUrl = (
     }
   }
 
-  return url.toString();
+  const urlString = url.toString();
+  if (query && Object.keys(query).length > 0 && urlString.includes('/?')) {
+    return urlString.replace('/?', '?');
+  }
+
+  return urlString;
 };
 
 export type CookieJar = {
@@ -264,7 +269,6 @@ const fetchHandler =
 
       if (timeoutId) clearTimeout(timeoutId);
 
-      // Cookie 保存
       const setCookie = response.headers.get('set-cookie');
       if (setCookie !== null && normalizedRequest.cookieJar) {
         normalizedRequest.cookieJar.setCookieFromHeader(normalizedRequest.url, setCookie);
@@ -299,9 +303,6 @@ const fetchHandler =
     });
   };
 
-/**
- * リトライミドルウェア
- */
 export const retry =
   (options: {
     readonly maxRetries: number;
@@ -325,10 +326,6 @@ export const retry =
     return attempt(0);
   };
 
-/**
- * リクエスト/レスポンスをフックするロギング/トレース用ミドルウェア。
- * @param sink ログ出力先（request/response それぞれのイベントを受け取る）
- */
 export const logging =
   (
     sink: (event: {
@@ -355,14 +352,6 @@ export const logging =
     });
   };
 
-/**
- * HTTP クライアントファクトリ（関数型）
- */
-/**
- * HTTP クライアント（関数型）を生成します。
- * - Guzzle の一部機能（baseURL / headers / query / json / timeout / httpErrors / middleware）を再現
- * - 追加機能: allowRedirects, decodeContent(Accept-Encoding), CookieJar, proxy(拡張init), form_params 相当
- */
 export const HttpClient = (options?: HttpClientOptions) => {
   const fetchImpl = options?.fetchImpl ?? fetch;
   const baseURL = options?.baseURL;
@@ -384,12 +373,10 @@ export const HttpClient = (options?: HttpClientOptions) => {
   const stack = compose(fetchHandler(fetchImpl), [...(options?.middleware ?? [])]);
 
   const build = (request: HttpRequest): NormalizedRequest => {
-    // JSON 指定時のヘッダ条件付与（明示ヘッダが優先）
     const jsonBody = request.json !== undefined ? JSON.stringify(request.json) : undefined;
     const conditionalHeaders: Record<string, string> =
       jsonBody !== undefined ? { 'Content-Type': 'application/json' } : {};
 
-    // form_params 相当（json/body が無い場合のみ）
     let body: BodyInit | null | undefined = jsonBody ?? (request.body as BodyInit | undefined);
     if (jsonBody === undefined && request.form && body === undefined) {
       const params = new URLSearchParams();
@@ -416,7 +403,7 @@ export const HttpClient = (options?: HttpClientOptions) => {
       conditionalHeaders['Accept-Encoding'] = acceptEncodingValue;
     }
 
-    // Cookie 注入
+    // inject Cookie
     const urlForCookie = resolveUrl(baseURL, request.pathOrUrl, request.query);
     const cookieHeader = cookieJar?.getCookieHeader(urlForCookie) ?? null;
     if (cookieHeader !== null) {
@@ -438,9 +425,6 @@ export const HttpClient = (options?: HttpClientOptions) => {
     } as const;
   };
 
-  /**
-   * Guzzle互換のI/F: method, pathOrUrl, options
-   */
   const request = (
     method: HttpMethod,
     pathOrUrl: string,

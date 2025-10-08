@@ -2,7 +2,6 @@ import { ResultAsync } from 'neverthrow';
 import { z } from 'zod';
 
 import { CommonError } from 'aspects/error';
-import { Logger } from 'aspects/log';
 import { createFunctionSchema } from 'aspects/type';
 
 import { ImmutableDate, immutableDateSchema } from 'domains/common/date';
@@ -190,17 +189,16 @@ export interface LiveStreamRepository {
   terminate: (identifier: LiveStreamIdentifier) => ResultAsync<void, CommonError>;
 }
 
-export const LiveStreamSubscriber = (
-  repository: LiveStreamRepository,
-  logger: Logger
-): Subscriber => ({
-  subscribe: broker => {
-    return broker
-      .listen<StreamStarted>('StreamStarted', event => {
-        logger.info(`[StreamSubscriber::StreamStarted] incoming ${JSON.stringify(event.snapshot)}`);
-      })
-      .listen<StreamEnded>('StreamEnded', event => {
-        logger.info(`[StreamSubscriber::StreamEnded] incoming ${JSON.stringify(event.stream)}`);
-      });
-  },
+export type LiveStreamSubscriberConsumers = {
+  onStreamStarted: (event: StreamStarted) => ResultAsync<void, CommonError>;
+  onStreamEnded: (event: StreamEnded) => ResultAsync<void, CommonError>;
+  onStreamNotFound: (event: StreamNotFound) => ResultAsync<void, CommonError>;
+};
+
+export const LiveStreamSubscriber = (consumers: LiveStreamSubscriberConsumers): Subscriber => ({
+  subscribe: broker =>
+    broker
+      .listen<StreamStarted>('StreamStarted', consumers.onStreamStarted)
+      .listen<StreamEnded>('StreamEnded', consumers.onStreamEnded)
+      .listen<StreamNotFound>('StreamNotFound', consumers.onStreamNotFound),
 });

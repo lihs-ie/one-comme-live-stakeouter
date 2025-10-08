@@ -1,6 +1,8 @@
 import hash from 'hash-it';
+import { Result } from 'neverthrow';
 import { z } from 'zod';
 
+import { ValidationError, validationError } from 'aspects/error';
 import { createFunctionSchema, type ExcludeFunctions } from 'aspects/type';
 
 export type ValueObject<T extends Record<string, unknown>> = T & {
@@ -64,3 +66,11 @@ export const ValueObject =
 
     return validated;
   };
+
+export const ResultValueObject = <T extends Record<string, unknown>, V = ValueObject<T>>(
+  valueObject: (properties: Properties<T>) => V
+): ((properties: Properties<T>) => Result<V, ValidationError>) =>
+  Result.fromThrowable(
+    (properties: Properties<T>) => valueObject(properties),
+    error => validationError((error as Error).message)
+  );

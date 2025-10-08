@@ -2,7 +2,6 @@ import { ResultAsync } from 'neverthrow';
 import { z } from 'zod';
 
 import { CommonError } from 'aspects/error';
-import { Logger } from 'aspects/log';
 import { functionSchemaReturning } from 'aspects/type';
 
 import { ImmutableList, immutableListSchema } from '../common/collections/list';
@@ -174,20 +173,39 @@ export const MonitoringFailed = createEvent<MonitoringFailed>(
   'MonitoringFailed'
 );
 
-export const MonitoringSubscriber = (repository: ChannelRepository, logger: Logger): Subscriber => {
-  return {
-    subscribe: broker => {
-      return broker
-        .listen<MonitoringStarted>('MonitoringStarted', event => {
-          logger.info(
-            `[MonitoringSubscriber::MonitoringStarted] incoming ${JSON.stringify(event.channel)}`
-          );
-        })
-        .listen<MonitoringStarted>('MonitoringStarted', event => {
-          logger.info(
-            `[MonitoringSubscriber::MonitoringStarted] incoming ${JSON.stringify(event.channel)}`
-          );
-        });
-    },
-  };
+export const channelCreatedSchema = eventSchema(z.literal('ChannelCreated'))
+  .extend({
+    channel: channelIdentifierSchema,
+  })
+  .brand('ChannelCreated');
+
+export type ChannelCreated = z.infer<typeof channelCreatedSchema>;
+
+export const ChannelCreated = createEvent<ChannelCreated>(channelCreatedSchema, 'ChannelCreated');
+
+export const channelTerminatedSchema = eventSchema(z.literal('ChannelTerminated'))
+  .extend({
+    channel: channelIdentifierSchema,
+  })
+  .brand('ChannelTerminated');
+
+export type ChannelTerminated = z.infer<typeof channelTerminatedSchema>;
+
+export const ChannelTerminated = createEvent<ChannelTerminated>(
+  channelTerminatedSchema,
+  'ChannelTerminated'
+);
+
+export type MonitoringSubscriberConsumers = {
+  onMonitoringStarted: (event: MonitoringStarted) => ResultAsync<void, CommonError>;
+  onMonitoringTick: (event: MonitoringTick) => ResultAsync<void, CommonError>;
+  onChannelCheckScheduled: (event: ChannelCheckScheduled) => ResultAsync<void, CommonError>;
 };
+
+export const MonitoringSubscriber = (consumers: MonitoringSubscriberConsumers): Subscriber => ({
+  subscribe: broker =>
+    broker
+      .listen<MonitoringStarted>('MonitoringStarted', consumers.onMonitoringStarted)
+      .listen<MonitoringTick>('MonitoringTick', consumers.onMonitoringTick)
+      .listen<ChannelCheckScheduled>('ChannelCheckScheduled', consumers.onChannelCheckScheduled),
+});

@@ -280,7 +280,7 @@ describe('Package adaptor', () => {
           const adaptor = ViewerServiceAdaptor(http, Reader, Writer, Translator);
 
           const result = await adaptor.terminate(service.identifier.value);
-          console.log(result);
+
           expect(result.isOk()).toBeTruthy();
         });
       });

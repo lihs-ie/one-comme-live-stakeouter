@@ -46,8 +46,6 @@ export const ACLViewerServiceRepository = (
           return ok(PlatformType.YOUTUBE);
         case 'niconico':
           return ok(PlatformType.NICONICO);
-        case 'twitch':
-          return ok(PlatformType.TWITCH);
         default:
           return err<PlatformType, ValidationError>({
             type: 'validation-error',
@@ -137,8 +135,6 @@ export const ACLViewerServiceRepository = (
       .map(() => {
         versions = versions.remove(identifier);
       });
-
-  // initialize versions cache
 
   return {
     find,

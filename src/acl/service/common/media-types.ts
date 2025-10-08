@@ -16,6 +16,6 @@ export const toJSON = <T>(payload: string): Result<T, ToJSONError> => {
   )();
 };
 
-export interface BaseWriter<T> {
-  write: (input: T) => string;
+export interface BaseWriter<T, M = string> {
+  write: (input: T) => M;
 }

@@ -35,7 +35,6 @@
     "experimentalDecorators": true,
 
     "paths": {
-      "@/*": ["./src/*"],
       "aspects/*": ["./src/aspects/*"],
       "domains/*": ["./src/domains/*"],
       "providers/*": ["./src/providers/*"],
@@ -44,7 +43,7 @@
       "workflows/*": ["./src/workflows/*"],
       "plugin/*": ["./src/plugin/*"],
       "acl/*": ["./src/acl/*"],
-      "config/*": ["./src/config/*"],
+      "config": ["./src/config"],
       "tests/*": ["./src/tests/*"]
     },
 

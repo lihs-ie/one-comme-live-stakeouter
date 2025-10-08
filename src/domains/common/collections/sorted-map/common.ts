@@ -236,6 +236,7 @@ const SortedImmutableMapImpl = <K, V>(
     mapKeys,
     mapValues,
     filter,
+    __brand: 'ImmutableMap',
   };
 };
 

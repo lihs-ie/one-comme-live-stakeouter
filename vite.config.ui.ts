@@ -22,7 +22,7 @@ export default defineConfig(({ mode }) => {
     root: './src/pages',
 
     build: {
-      outDir: '../../dist/ui',
+      outDir: '../../dist/static',
       emptyOutDir: true,
       sourcemap: true,
       rollupOptions: {
@@ -36,13 +36,14 @@ export default defineConfig(({ mode }) => {
 
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, 'src'),
         aspects: path.resolve(__dirname, 'src/aspects'),
         domains: path.resolve(__dirname, 'src/domains'),
         providers: path.resolve(__dirname, 'src/providers'),
         components: path.resolve(__dirname, 'src/components'),
         acl: path.resolve(__dirname, 'src/acl'),
         config: path.resolve(__dirname, 'src/config'),
+        workflows: path.resolve(__dirname, 'src/workflows'),
+        infrastructures: path.resolve(__dirname, 'src/infrastructures'),
       },
     },
 

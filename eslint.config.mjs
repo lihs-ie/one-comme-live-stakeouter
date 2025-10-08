@@ -13,7 +13,6 @@ import { dirname } from 'node:path';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig([
-  // 無視パターン
   {
     ignores: [
       'node_modules',
@@ -22,20 +21,17 @@ export default defineConfig([
       'coverage',
       'vite.config.plugin.ts',
       'vite.config.ui.ts',
+      'vitest.config.ts',
       '.storybook',
     ],
   },
 
-  // JS推奨
   js.configs.recommended,
 
-  // TS推奨（型チェック付き）
   ...tseslint.configs.recommendedTypeChecked,
 
-  // React推奨（Flat）
   reactPlugin.configs.flat.recommended,
 
-  // 共通設定とルール
   {
     files: ['**/*.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     languageOptions: {
@@ -46,7 +42,6 @@ export default defineConfig([
         ...globals.node,
       },
       parserOptions: {
-        // TypeScript ESLint v8の型付きルール有効化
         projectService: true,
         tsconfigRootDir: __dirname,
         ecmaFeatures: { jsx: true },
@@ -64,15 +59,12 @@ export default defineConfig([
       react: { version: 'detect' },
       'import/resolver': {
         typescript: {
-          // 存在しない tsconfig 参照を避ける
           project: ['./tsconfig.json'],
         },
         node: { extensions: ['.js', '.jsx', '.ts', '.tsx'] },
       },
     },
     rules: {
-      // TypeScript 厳格ルール
-      // BaseルールはTS版に一元化
       'no-unused-vars': 'off',
       '@typescript-eslint/no-unused-vars': [
         'error',
@@ -99,10 +91,8 @@ export default defineConfig([
       '@typescript-eslint/no-namespace': 'off',
       '@typescript-eslint/only-throw-error': 'off',
 
-      // 未使用 import の禁止（固定）
       'unused-imports/no-unused-imports': 'error',
 
-      // コーディング規約
       'no-console': ['warn', { allow: ['warn', 'error'] }],
       'no-debugger': 'error',
       'no-alert': 'error',
@@ -110,7 +100,6 @@ export default defineConfig([
       'no-implied-eval': 'error',
       'no-script-url': 'error',
 
-      // 命名規則
       '@typescript-eslint/naming-convention': [
         'error',
         { selector: 'interface', format: ['PascalCase'] },
@@ -125,14 +114,12 @@ export default defineConfig([
         { selector: 'method', format: ['camelCase'] },
       ],
 
-      // React関連
       'react/prop-types': 'off',
       'react/react-in-jsx-scope': 'off',
       'react/jsx-uses-react': 'off',
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
 
-      // Import/Export
       'prefer-const': 'error',
       'no-var': 'error',
       'object-shorthand': 'error',
@@ -162,7 +149,6 @@ export default defineConfig([
       'import/no-cycle': ['error', { maxDepth: Infinity }],
       'import/no-self-import': 'error',
 
-      // Prettier連携
       'prettier/prettier': [
         'error',
         {
@@ -178,7 +164,6 @@ export default defineConfig([
     },
   },
 
-  // テスト向け（Vitest互換のJestグローバルを許可）
   {
     files: ['src/tests/**/*.{ts,tsx}', '**/*.{test,spec}.{ts,tsx}'],
     languageOptions: {
@@ -189,7 +174,6 @@ export default defineConfig([
     },
   },
 
-  // Storybook向け
   {
     files: ['**/*.stories.{ts,tsx}', '.storybook/**/*.{ts,tsx}'],
     rules: {
@@ -197,7 +181,6 @@ export default defineConfig([
     },
   },
 
-  // 設定ファイル群
   {
     files: ['*.config.{js,ts}', '.*rc.{js,ts}'],
     languageOptions: {

@@ -38,6 +38,7 @@ export const QueueingDriverFactory = Factory<QueueingDriver, QueueingDriverPrope
     return {
       enqueue,
       dequeue,
+      isEmpty: () => queue.isEmpty(),
     };
   },
   prepare: (overrides, _) => ({

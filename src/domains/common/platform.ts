@@ -2,7 +2,6 @@ import { z } from 'zod';
 
 export const PlatformType = {
   YOUTUBE: 'youtube',
-  TWITCH: 'twitch',
   NICONICO: 'niconico',
 } as const;
 

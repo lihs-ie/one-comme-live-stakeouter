@@ -59,6 +59,22 @@ export const Reader: BaseReader<Media> = {
     ),
 };
 
+type Body = {
+  id: string;
+  name: string;
+  url: string;
+  speech: boolean;
+  write: boolean;
+  enabled: boolean;
+  color: { r: number; g: number; b: number };
+  options: {
+    outputLogs: boolean;
+    version: number;
+    platform: string;
+  };
+  keyword: string;
+};
+
 export const Writer: BaseWriter<ServiceDTO> = {
   write: (input: ServiceDTO): string => {
     return JSON.stringify({
@@ -74,6 +90,7 @@ export const Writer: BaseWriter<ServiceDTO> = {
         version: input.version,
         platform: input.platform,
       },
-    });
+      keyword: input.name,
+    } as Body);
   },
 };

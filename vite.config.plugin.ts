@@ -31,7 +31,6 @@ export default defineConfig(({ mode }) => {
 
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, 'src'),
         aspects: path.resolve(__dirname, 'src/aspects'),
         domains: path.resolve(__dirname, 'src/domains'),
         providers: path.resolve(__dirname, 'src/providers'),
@@ -50,27 +49,5 @@ export default defineConfig(({ mode }) => {
       'process.env.ACL_NICONICO_USER_AGENT': JSON.stringify(env.ACL_NICONICO_USER_AGENT),
       'process.env.ACL_ONE_COMME_BASE_URI': JSON.stringify(env.ACL_ONE_COMME_BASE_URI),
     },
-
-    plugins: [
-      {
-        name: 'copy-ui-to-static',
-        closeBundle: async () => {
-          const fs = await import('fs');
-          const fsp = fs.promises;
-
-          const srcDir = path.resolve(__dirname, 'dist/ui');
-          const destDir = path.resolve(__dirname, 'dist/static');
-
-          if (fs.existsSync(srcDir)) {
-            if (fs.existsSync(destDir)) {
-              await fsp.rm(destDir, { recursive: true, force: true });
-            }
-
-            await fsp.cp(srcDir, destDir, { recursive: true });
-            console.log('✓ Copied dist/ui → dist/static');
-          }
-        },
-      },
-    ],
   };
 });

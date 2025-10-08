@@ -35,13 +35,18 @@ export const ViewerServiceAdaptor = (
         .mapErr<RouteError>(error => mapHttpClientError(error))
         .andThen(response => reader.readEntries(response.bodyText))
         .andThen(medias => okAsync(translator.translateEntries(medias))),
-    persist: (service: ServiceDTO) =>
-      http
-        .request(service.version === 1 ? 'POST' : 'PUT', 'services', {
-          body: writer.write(service),
-        })
+    persist: (service: ServiceDTO) => {
+      const request = service.version === 1 ? http.post : http.put;
+
+      const endpoint = service.version === 1 ? 'services' : `services/${service.id}`;
+
+      return request(endpoint, {
+        body: writer.write(service),
+        headers: { 'Content-Type': 'application/json' },
+      })
         .mapErr(error => mapHttpClientError(error))
-        .andThen(() => okAsync()),
+        .andThen(() => okAsync());
+    },
     terminate: (id: string) =>
       http
         .del(`services/${id}`)

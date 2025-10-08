@@ -80,7 +80,7 @@ export const ChannelFactory = Factory<Channel, ChannelProperties>({
 export type ChannelRepositoryProperties = {
   instances: ImmutableList<Channel>;
   onPersist?: (instance: Channel) => void;
-  onTerminate?: (identifier: ChannelIdentifier) => void;
+  onTerminate?: (instance: Channel) => void;
 };
 
 export const ChannelRepositoryFactory = Factory<ChannelRepository, ChannelRepositoryProperties>({
@@ -114,23 +114,19 @@ export const ChannelRepositoryFactory = Factory<ChannelRepository, ChannelReposi
           ),
       monitoring: () =>
         okAsync(instances.filter((_, instance) => instance.setting.isMonitoring).toList()),
-      persist: (channel: Channel) =>
-        instances.get(channel.identifier).ifPresentOrElse(
-          _ => errAsync({ type: 'conflict', context: channel.identifier.value }),
-          () => {
-            instances = instances.add(channel.identifier, channel);
+      persist: (channel: Channel) => {
+        instances = instances.add(channel.identifier, channel);
 
-            properties.onPersist?.(channel);
+        properties.onPersist?.(channel);
 
-            return okAsync();
-          }
-        ),
+        return okAsync<void, CommonError>();
+      },
       terminate: (identifier: ChannelIdentifier) =>
         instances.get(identifier).ifPresentOrElse(
-          _ => {
+          instance => {
             instances = instances.remove(identifier);
 
-            properties.onTerminate?.(identifier);
+            properties.onTerminate?.(instance);
 
             return okAsync<void, CommonError>();
           },
@@ -144,6 +140,8 @@ export const ChannelRepositoryFactory = Factory<ChannelRepository, ChannelReposi
   },
   prepare: (overrides, seed) => ({
     instances: overrides.instances ?? Builder(ChannelFactory).buildListWith(10, seed),
+    onPersist: overrides.onPersist,
+    onTerminate: overrides.onTerminate,
   }),
   retrieve: _ => {
     throw new Error('Repository cannot be retrieved.');

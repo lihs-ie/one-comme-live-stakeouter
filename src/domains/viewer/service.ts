@@ -6,7 +6,7 @@ import { createFunctionSchema, functionSchemaReturning } from 'aspects/type';
 
 import { ImmutableList } from 'domains/common/collections';
 
-import { createEvent, eventSchema } from '../common/event';
+import { createEvent, eventSchema, Subscriber } from '../common/event';
 import { uuidV4BasedIdentifierSchema } from '../common/identifier';
 import { platformTypeSchema } from '../common/platform';
 import { URL, urlSchema } from '../common/uri';
@@ -221,3 +221,17 @@ export interface ViewerServiceRepository {
   persist: (service: ViewerService) => ResultAsync<void, CommonError>;
   terminate: (identifier: ServiceIdentifier) => ResultAsync<void, CommonError>;
 }
+
+export type ViewerServiceSubscriberConsumers = {
+  onServiceCreated: (event: ServiceCreated) => ResultAsync<void, CommonError>;
+  onServiceUpdated: (event: ServiceUpdated) => ResultAsync<void, CommonError>;
+};
+
+export const ViewerServiceSubscriber = (
+  consumers: ViewerServiceSubscriberConsumers
+): Subscriber => ({
+  subscribe: broker =>
+    broker
+      .listen<ServiceCreated>('ServiceCreated', consumers.onServiceCreated)
+      .listen<ServiceUpdated>('ServiceUpdated', consumers.onServiceUpdated),
+});
